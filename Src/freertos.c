@@ -1,3 +1,4 @@
+/* USER CODE BEGIN Header */
 /**
   ******************************************************************************
   * File Name          : freertos.c
@@ -45,35 +46,46 @@
   *
   ******************************************************************************
   */
+/* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
 #include "FreeRTOS.h"
 #include "task.h"
+#include "main.h"
 #include "cmsis_os.h"
 
+/* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */     
 #include "tcpip.h"
 #include "task.h"
 
 /* USER CODE END Includes */
 
-/* Variables -----------------------------------------------------------------*/
-osThreadId defaultTaskHandle;
-osThreadId TaskListHandle;
+/* Private typedef -----------------------------------------------------------*/
+/* USER CODE BEGIN PTD */
 
+/* USER CODE END PTD */
+
+/* Private define ------------------------------------------------------------*/
+/* USER CODE BEGIN PD */
+
+/* USER CODE END PD */
+
+/* Private macro -------------------------------------------------------------*/
+/* USER CODE BEGIN PM */
+
+/* USER CODE END PM */
+
+/* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
 uint8_t pcWriteBuffer[500];
 uint8_t RunTimeBuffer[500];
 
 /* USER CODE END Variables */
+osThreadId defaultTaskHandle;
+osThreadId TaskListHandle;
 
-/* Function prototypes -------------------------------------------------------*/
-void StartDefaultTask(void const * argument);
-void TaskList_Stats(void const * argument);
-
-extern void MX_LWIP_Init(void);
-void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
-
+/* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
 extern void tcpecho_init(void);
 extern void udpecho_init(void);
@@ -81,10 +93,17 @@ extern void udpecho_init(void);
 
 /* USER CODE END FunctionPrototypes */
 
-/* Hook prototypes */
+void StartDefaultTask(void const * argument);
+void TaskList_Stats(void const * argument);
 
-/* Init FreeRTOS */
+extern void MX_LWIP_Init(void);
+void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
+/**
+  * @brief  FreeRTOS initialization
+  * @param  None
+  * @retval None
+  */
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
        
@@ -120,7 +139,13 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE END RTOS_QUEUES */
 }
 
-/* StartDefaultTask function */
+/* USER CODE BEGIN Header_StartDefaultTask */
+/**
+  * @brief  Function implementing the defaultTask thread.
+  * @param  argument: Not used 
+  * @retval None
+  */
+/* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void const * argument)
 {
   /* init code for LWIP */
@@ -140,14 +165,19 @@ void StartDefaultTask(void const * argument)
   for(;;)
   {
     HAL_GPIO_TogglePin(LED0_GPIO_Port,LED0_Pin);
-		printf("---hello---\n");
 		osDelay(500);
 		HAL_GPIO_TogglePin(LED1_GPIO_Port,LED1_Pin);		
   }
   /* USER CODE END StartDefaultTask */
 }
 
-/* TaskList_Stats function */
+/* USER CODE BEGIN Header_TaskList_Stats */
+/**
+* @brief Function implementing the TaskList thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_TaskList_Stats */
 void TaskList_Stats(void const * argument)
 {
   /* USER CODE BEGIN TaskList_Stats */
@@ -159,6 +189,7 @@ void TaskList_Stats(void const * argument)
   /* USER CODE END TaskList_Stats */
 }
 
+/* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
      
 /* USER CODE END Application */
