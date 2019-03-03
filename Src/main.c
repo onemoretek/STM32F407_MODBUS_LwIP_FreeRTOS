@@ -10,7 +10,7 @@
   * inserted by the user or by software development tools
   * are owned by their respective copyright owners.
   *
-  * Copyright (c) 2018 STMicroelectronics International N.V. 
+  * Copyright (c) 2019 STMicroelectronics International N.V. 
   * All rights reserved.
   *
   * Redistribution and use in source and binary forms, with or without 
@@ -51,15 +51,26 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os.h"
+#include "i2c.h"
 #include "lwip.h"
 #include "spi.h"
 #include "tim.h"
 #include "usart.h"
+#include "usb_otg.h"
 #include "gpio.h"
+#include "dw_main.h"
+#include "uart.h"
+#include "stmflash.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+uint8_t aRxBuffer_uart1;
+uint8_t aRxBuffer_uart3;
+unsigned char usart1_rx_buf[USART1_RX_LENGTH_MAX];//串口1的接收数据缓存
+unsigned int usart1_rx_length=0;
+unsigned char usart3_rx_buf[USART3_RX_LENGTH_MAX];
+unsigned int usart3_rx_length=0;
+unsigned char time3_usart1,time3_usart2,time3_usart3;//time3用于各串口接收的变量
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -80,36 +91,105 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-/* Private variables ---------------------------------------------------------*/
-#define BOARD_NAME	"STM32F407ZGT6-DEV"
-#define NETWORK_CARD "LAN8742A_PHY"
-#define SYSTEM_VER	"1.0.0"
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 void MX_FREERTOS_Init(void);
+static void MX_NVIC_Init(void);
 /* USER CODE BEGIN PFP */
-/* Private function prototypes -----------------------------------------------*/
-
+extern UART_HandleTypeDef huart1;
+extern UART_HandleTypeDef huart3;
+extern TIM_HandleTypeDef htim2;
+extern TIM_HandleTypeDef htim3;
+extern TIM_HandleTypeDef htim4;
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void System_Info(void)
+/**
+  * @brief  Rx Transfer completed callback
+  * @param  UartHandle: UART handle
+  * @note   This example shows a simple way to report end of IT Rx transfer, and 
+  *         you can add your own implementation.
+  * @retval None
+  */
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
 {
-	printf("+------------------------------------------+\r\n");
-	printf("|          FreeRTOS+LwIP System            |\r\n");
-	printf("|     Copyright(c)2018 Skyphynetworks.     |\r\n");
-	printf("|           All rights reserved.           |\r\n");
-	printf("+------------------------------------------+\r\n");
-	printf(" Product: %s\r\n", BOARD_NAME);
-	printf(" Network Card:%s\r\n",NETWORK_CARD);
-	printf(" Version: %s\r\n", SYSTEM_VER);
-	printf(" Release: %s %s\r\n", __DATE__, __TIME__);
-	printf("+------------------------------------------+\r\n");
-}
+	  if(!__HAL_UART_GET_IT_SOURCE(UartHandle, UART_IT_RXNE) )  {
+				if(UartHandle->Instance == USART1) {
+				/** @brief  Checks whether the specified UART interrupt has occurred or not.
+					* @param  __HANDLE__ specifies the UART Handle.
+					*         This parameter can be UARTx where x: 1, 2, 3, 4, 5, 6, 7 or 8 to select the USART or 
+					*         UART peripheral.
+					* @param  __IT__ specifies the UART interrupt source to check.
+					*          This parameter can be one of the following values:
+					*            @arg UART_IT_CTS: CTS change interrupt (not available for UART4 and UART5)
+					*            @arg UART_IT_LBD: LIN Break detection interrupt
+					*            @arg UART_IT_TXE: Transmit Data Register empty interrupt
+					*            @arg UART_IT_TC:  Transmission complete interrupt
+					*            @arg UART_IT_RXNE: Receive Data register not empty interrupt
+					*            @arg UART_IT_IDLE: Idle line detection interrupt
+					*            @arg USART_IT_ERR: Error interrupt
+					* @retval The new state of __IT__ (TRUE or FALSE).
+					*/
+//#define __HAL_UART_GET_IT_SOURCE(__HANDLE__, __IT__) (((((__IT__) >> 28U) == 1U)? (__HANDLE__)->Instance->CR1:(((((uint32_t)(__IT__)) >> 28U) == 2U)? \
+//													  (__HANDLE__)->Instance->CR2 : (__HANDLE__)->Instance->CR3)) & (((uint32_t)(__IT__)) & UART_IT_MASK))
 
+										time3_usart1 = 0;
+										usart1_rx_buf[usart1_rx_length] = aRxBuffer_uart1;
+//										if(usart1_rx_length < USART1_RX_LENGTH_MAX)
+										usart1_rx_length =	 ( usart1_rx_length + 1 )  %  USART1_RX_LENGTH_MAX;
+										HAL_UART_Receive_IT(&huart1, (uint8_t *)&aRxBuffer_uart1, 1);   //再开启接收中断	
+								
+						} else if (UartHandle->Instance == USART3 ){
+										time3_usart3 = 0;
+										usart3_rx_buf[usart3_rx_length] = aRxBuffer_uart3;
+										if(usart3_rx_length < USART3_RX_LENGTH_MAX)
+												usart3_rx_length++; 
+										HAL_UART_Receive_IT(&huart3, (uint8_t *)&aRxBuffer_uart3, 1);   //再开启接收中断
+						}
+		}
+	}
+/**
+  * @brief  Period elapsed callback in non blocking mode 
+  * @param  htim pointer to a TIM_HandleTypeDef structure that contains
+  *                the configuration information for TIM module.
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+    if( htim->Instance == TIM2 )  
+    {			
+			if(ERROR_FLAG <= 1000)
+					ERROR_FLAG++;
+    }
+    else if( htim->Instance == TIM3 )  
+    {
+      if( time3_usart1 <= 200 )
+        time3_usart1++ ;
+//			if( time3_usart2 <= 200 )
+//        time3_usart2++ ;
+	if( time3_usart3 <= 200 )
+        time3_usart3++ ;
+	if (  ( time3_usart1  >  ( 5 * (10 - Flash_Usart_BaudRate ))) &&  ( usart1_rx_length  )  )
+	{
+		MODBUS(usart1_rx_buf,usart1_rx_length,1);
+		usart1_rx_length = 0;
+//		memset(usart1_rx_buf, 0 ,USART1_RX_LENGTH_MAX);
+	}
+
+    }
+    else if( htim->Instance == TIM4 )  
+    {
+      if( Time_time4_Cuo < 0xFFFF )
+					Time_time4_Cuo++;
+			else 
+					Time_time4_Cuo = 0; 
+    }
+
+}
 /* USER CODE END 0 */
 
 /**
@@ -135,16 +215,40 @@ int main(void)
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
-
+  FLASH_read();
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART1_UART_Init();
-  MX_TIM6_Init();
   MX_SPI2_Init();
+  MX_SPI1_Init();
+  MX_USART3_UART_Init();
+  MX_I2C1_Init();
+  MX_USB_OTG_FS_PCD_Init();
+  MX_TIM2_Init();
+  MX_TIM3_Init();
+  MX_TIM4_Init();
+
+  /* Initialize interrupts */
+  MX_NVIC_Init();
   /* USER CODE BEGIN 2 */
-	System_Info();
+	dw_init();
+	/*##-2- Put UART peripheral in reception process ###########################*/  
+  if(HAL_UART_Receive_IT(&huart1, (uint8_t *)&aRxBuffer_uart1, 1) != HAL_OK)
+  {
+		printf("Uart1 Error \r\n");
+    Error_Handler();
+  }
+  
+	if(HAL_UART_Receive_IT(&huart3, (uint8_t *)&aRxBuffer_uart3, 1) != HAL_OK)
+  {
+		printf("Uart3 Error \r\n");
+    Error_Handler();
+  }
+//	HAL_TIM_Base_Start_IT(&htim2);//启动定时器
+  	HAL_TIM_Base_Start_IT(&htim3);
+//	HAL_TIM_Base_Start_IT(&htim4);
   /* USER CODE END 2 */
 
   /* Call init function for freertos objects (in freertos.c) */
@@ -162,7 +266,6 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-
   }
   /* USER CODE END 3 */
 }
@@ -182,15 +285,14 @@ void SystemClock_Config(void)
   __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
   /**Initializes the CPU, AHB and APB busses clocks 
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
-  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
-  RCC_OscInitStruct.PLL.PLLM = 8;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLM = 4;
   RCC_OscInitStruct.PLL.PLLN = 168;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-  RCC_OscInitStruct.PLL.PLLQ = 4;
+  RCC_OscInitStruct.PLL.PLLQ = 7;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -210,6 +312,32 @@ void SystemClock_Config(void)
   }
 }
 
+/**
+  * @brief NVIC Configuration.
+  * @retval None
+  */
+static void MX_NVIC_Init(void)
+{
+  /* TIM2_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(TIM2_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(TIM2_IRQn);
+  /* TIM3_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(TIM3_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(TIM3_IRQn);
+  /* TIM4_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(TIM4_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(TIM4_IRQn);
+  /* USART1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(USART1_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(USART1_IRQn);
+  /* USART3_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(USART3_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(USART3_IRQn);
+  /* ETH_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(ETH_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(ETH_IRQn);
+}
+
 /* USER CODE BEGIN 4 */
 
 /* USER CODE END 4 */
@@ -222,9 +350,7 @@ void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
-  while(1) 
-  {
-  }
+
   /* USER CODE END Error_Handler_Debug */
 }
 
@@ -240,7 +366,7 @@ void assert_failed(uint8_t *file, uint32_t line)
 { 
   /* USER CODE BEGIN 6 */
   /* User can add his own implementation to report the file name and line number,
-    ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+     tex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */

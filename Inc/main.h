@@ -1,7 +1,7 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file           : main.h
+  * @file           : dw_main.h
   * @brief          : Header for main.c file.
   *                   This file contains the common defines of the application.
   ******************************************************************************
@@ -11,7 +11,7 @@
   * inserted by the user or by software development tools
   * are owned by their respective copyright owners.
   *
-  * Copyright (c) 2018 STMicroelectronics International N.V. 
+  * Copyright (c) 2019 STMicroelectronics International N.V. 
   * All rights reserved.
   *
   * Redistribution and use in source and binary forms, with or without 
@@ -99,8 +99,16 @@ void Error_Handler(void);
 #define LED0_GPIO_Port GPIOF
 #define LED1_Pin GPIO_PIN_10
 #define LED1_GPIO_Port GPIOF
+#define DW_NSS_Pin GPIO_PIN_12
+#define DW_NSS_GPIO_Port GPIOB
+#define DW_WUP_Pin GPIO_PIN_8
+#define DW_WUP_GPIO_Port GPIOD
+#define DW_RESET_Pin GPIO_PIN_10
+#define DW_RESET_GPIO_Port GPIOD
 #define LAN8720_RST_Pin GPIO_PIN_3
 #define LAN8720_RST_GPIO_Port GPIOD
+#define DW_IRQn_Pin GPIO_PIN_7
+#define DW_IRQn_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */

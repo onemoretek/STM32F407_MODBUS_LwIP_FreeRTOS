@@ -10,7 +10,7 @@
   * inserted by the user or by software development tools
   * are owned by their respective copyright owners.
   *
-  * Copyright (c) 2018 STMicroelectronics International N.V. 
+  * Copyright (c) 2019 STMicroelectronics International N.V. 
   * All rights reserved.
   *
   * Redistribution and use in source and binary forms, with or without 
@@ -56,8 +56,6 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */     
-#include "tcpip.h"
-#include "task.h"
 
 /* USER CODE END Includes */
 
@@ -78,8 +76,6 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
-uint8_t pcWriteBuffer[500];
-uint8_t RunTimeBuffer[500];
 
 /* USER CODE END Variables */
 osThreadId defaultTaskHandle;
@@ -87,10 +83,7 @@ osThreadId TaskListHandle;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
-extern void tcpecho_init(void);
-extern void udpecho_init(void);
-//extern void vTaskGetRunTimeStats( char *pcWriteBuffer );
-
+   
 /* USER CODE END FunctionPrototypes */
 
 void StartDefaultTask(void const * argument);
@@ -123,7 +116,7 @@ void MX_FREERTOS_Init(void) {
 
   /* Create the thread(s) */
   /* definition and creation of defaultTask */
-  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 128);
+  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 2048);
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
   /* definition and creation of TaskList */
@@ -152,21 +145,11 @@ void StartDefaultTask(void const * argument)
   MX_LWIP_Init();
 
   /* USER CODE BEGIN StartDefaultTask */
-	
-	/*Initialize tcp echo server*/
-	tcpecho_init();
-
-	/*Initialize udp echo server*/
-//	udpecho_init();
-	
-	vTaskList((char *)&pcWriteBuffer);
-	printf("%s\r\n",pcWriteBuffer);	
-
+  /* Infinite loop */
   for(;;)
   {
-    HAL_GPIO_TogglePin(LED0_GPIO_Port,LED0_Pin);
-		osDelay(500);
-		HAL_GPIO_TogglePin(LED1_GPIO_Port,LED1_Pin);		
+		dw_main();
+//    osDelay(1);
   }
   /* USER CODE END StartDefaultTask */
 }

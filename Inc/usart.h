@@ -61,15 +61,18 @@
 /* USER CODE END Includes */
 
 extern UART_HandleTypeDef huart1;
+extern UART_HandleTypeDef huart3;
 
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
 
 void MX_USART1_UART_Init(void);
+void MX_USART3_UART_Init(void);
 
 /* USER CODE BEGIN Prototypes */
-
+void Usart1_SendString(unsigned char *data,unsigned int num);
+void Usart3_SendString(unsigned char *data,unsigned int num);
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus
