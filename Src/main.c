@@ -59,11 +59,15 @@
 #include "usb_otg.h"
 #include "gpio.h"
 #include "dw_main.h"
-#include "uart.h"
 #include "stmflash.h"
+
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+//串口数据接收缓存长度
+#define USART1_RX_LENGTH_MAX    200
+#define USART3_RX_LENGTH_MAX    20
+//#define MODBUS_LENGTH 100
 uint8_t aRxBuffer_uart1;
 uint8_t aRxBuffer_uart3;
 unsigned char usart1_rx_buf[USART1_RX_LENGTH_MAX];//串口1的接收数据缓存
@@ -117,8 +121,11 @@ extern TIM_HandleTypeDef htim4;
   */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
 {
-	  if(!__HAL_UART_GET_IT_SOURCE(UartHandle, UART_IT_RXNE) )  {
-				if(UartHandle->Instance == USART1) {
+//	  printf("UartHandle->Instance = 0x%x\r\n",UartHandle->Instance);
+//		printf(" UART_IT_RXNE = 0x%x\r\n",__HAL_UART_GET_IT_SOURCE(UartHandle, UART_IT_RXNE));
+	  if(!__HAL_UART_GET_IT_SOURCE(UartHandle, UART_IT_RXNE) )
+			{
+						if(UartHandle->Instance == USART1) {
 				/** @brief  Checks whether the specified UART interrupt has occurred or not.
 					* @param  __HANDLE__ specifies the UART Handle.
 					*         This parameter can be UARTx where x: 1, 2, 3, 4, 5, 6, 7 or 8 to select the USART or 
@@ -135,12 +142,13 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
 					* @retval The new state of __IT__ (TRUE or FALSE).
 					*/
 //#define __HAL_UART_GET_IT_SOURCE(__HANDLE__, __IT__) (((((__IT__) >> 28U) == 1U)? (__HANDLE__)->Instance->CR1:(((((uint32_t)(__IT__)) >> 28U) == 2U)? \
-//													  (__HANDLE__)->Instance->CR2 : (__HANDLE__)->Instance->CR3)) & (((uint32_t)(__IT__)) & UART_IT_MASK))
+																															(__HANDLE__)->Instance->CR2 : (__HANDLE__)->Instance->CR3)) & (((uint32_t)(__IT__)) & UART_IT_MASK))
 
 										time3_usart1 = 0;
 										usart1_rx_buf[usart1_rx_length] = aRxBuffer_uart1;
-//										if(usart1_rx_length < USART1_RX_LENGTH_MAX)
-										usart1_rx_length =	 ( usart1_rx_length + 1 )  %  USART1_RX_LENGTH_MAX;
+										if(usart1_rx_length < USART1_RX_LENGTH_MAX)
+												usart1_rx_length++;
+//										printf("aRxBuffer_uart1 = 0x%x\r\n",aRxBuffer_uart1);
 										HAL_UART_Receive_IT(&huart1, (uint8_t *)&aRxBuffer_uart1, 1);   //再开启接收中断	
 								
 						} else if (UartHandle->Instance == USART3 ){
@@ -162,31 +170,30 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
     if( htim->Instance == TIM2 )  
     {			
-			if(ERROR_FLAG <= 1000)
-					ERROR_FLAG++;
+//			if(ERROR_FLAG <= 1000)
+//					ERROR_FLAG++;
     }
     else if( htim->Instance == TIM3 )  
-    {
-      if( time3_usart1 <= 200 )
-        time3_usart1++ ;
-//			if( time3_usart2 <= 200 )
-//        time3_usart2++ ;
-	if( time3_usart3 <= 200 )
-        time3_usart3++ ;
-	if (  ( time3_usart1  >  ( 5 * (10 - Flash_Usart_BaudRate ))) &&  ( usart1_rx_length  )  )
-	{
-		MODBUS(usart1_rx_buf,usart1_rx_length,1);
-		usart1_rx_length = 0;
-//		memset(usart1_rx_buf, 0 ,USART1_RX_LENGTH_MAX);
-	}
 
-    }
-    else if( htim->Instance == TIM4 )  
+			 {
+			if( time3_usart1 <= 200 )
+
+				 time3_usart1++ ;
+				if (  ( time3_usart1  >  ( 5 * (10 - Flash_Usart_BaudRate ))) &&  ( usart1_rx_length  )  )
+			{
+					MODBUS(usart1_rx_buf,usart1_rx_length,1);
+						usart1_rx_length = 0;
+
+			}
+		
+			 }
+
+		else if( htim->Instance == TIM4 )  
     {
-      if( Time_time4_Cuo < 0xFFFF )
-					Time_time4_Cuo++;
-			else 
-					Time_time4_Cuo = 0; 
+ //     if( Time_time4_Cuo < 0xFFFF )
+//					Time_time4_Cuo++;
+	//		else 
+	//				Time_time4_Cuo = 0; 
     }
 
 }
@@ -233,7 +240,7 @@ int main(void)
   /* Initialize interrupts */
   MX_NVIC_Init();
   /* USER CODE BEGIN 2 */
-	dw_init();
+  dw_init();
 	/*##-2- Put UART peripheral in reception process ###########################*/  
   if(HAL_UART_Receive_IT(&huart1, (uint8_t *)&aRxBuffer_uart1, 1) != HAL_OK)
   {
@@ -246,9 +253,9 @@ int main(void)
 		printf("Uart3 Error \r\n");
     Error_Handler();
   }
-//	HAL_TIM_Base_Start_IT(&htim2);//启动定时器
-  	HAL_TIM_Base_Start_IT(&htim3);
-//	HAL_TIM_Base_Start_IT(&htim4);
+	HAL_TIM_Base_Start_IT(&htim2);//启动定时器
+  HAL_TIM_Base_Start_IT(&htim3);
+	HAL_TIM_Base_Start_IT(&htim4);
   /* USER CODE END 2 */
 
   /* Call init function for freertos objects (in freertos.c) */
@@ -279,11 +286,11 @@ void SystemClock_Config(void)
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
-  /**Configure the main internal regulator output voltage 
+  /** Configure the main internal regulator output voltage 
   */
   __HAL_RCC_PWR_CLK_ENABLE();
   __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
-  /**Initializes the CPU, AHB and APB busses clocks 
+  /** Initializes the CPU, AHB and APB busses clocks 
   */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
@@ -297,7 +304,7 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  /**Initializes the CPU, AHB and APB busses clocks 
+  /** Initializes the CPU, AHB and APB busses clocks 
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;

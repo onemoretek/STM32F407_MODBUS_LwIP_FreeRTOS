@@ -103,12 +103,14 @@ void Error_Handler(void);
 #define DW_NSS_GPIO_Port GPIOB
 #define DW_WUP_Pin GPIO_PIN_8
 #define DW_WUP_GPIO_Port GPIOD
+#define DW_IRQn_Pin GPIO_PIN_9
+#define DW_IRQn_GPIO_Port GPIOD
 #define DW_RESET_Pin GPIO_PIN_10
 #define DW_RESET_GPIO_Port GPIOD
 #define LAN8720_RST_Pin GPIO_PIN_3
 #define LAN8720_RST_GPIO_Port GPIOD
-#define DW_IRQn_Pin GPIO_PIN_7
-#define DW_IRQn_GPIO_Port GPIOB
+#define DW_IRQnB7_Pin GPIO_PIN_7
+#define DW_IRQnB7_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */

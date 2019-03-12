@@ -81,13 +81,12 @@ int writetospi_serial
 {
 //    decaIrqStatus_t  stat ;
 //    stat = decamutexon() ;
-
 	while (HAL_SPI_GetState(&hspi2) != HAL_SPI_STATE_READY);
 
     HAL_GPIO_WritePin(DW_NSS_GPIO_Port, DW_NSS_Pin, GPIO_PIN_RESET); /**< Put chip select line low */
 
-    HAL_SPI_Transmit(&hspi2, (uint8_t *)&headerBuffer[0], headerLength, 10);	/* Send header in polling mode */
-    HAL_SPI_Transmit(&hspi2, (uint8_t *)&bodyBuffer[0], bodyLength, 10);		/* Send data in polling mode */
+    HAL_SPI_Transmit(&hspi2, (uint8_t *)headerBuffer, headerLength, 0x10);	/* Send header in polling mode */
+    HAL_SPI_Transmit(&hspi2, (uint8_t *)bodyBuffer, bodyLength, 0x10);		/* Send data in polling mode */
 
     HAL_GPIO_WritePin(DW_NSS_GPIO_Port, DW_NSS_Pin, GPIO_PIN_SET); /**< Put chip select line high */
 

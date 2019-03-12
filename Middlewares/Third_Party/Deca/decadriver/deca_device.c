@@ -128,7 +128,7 @@ int dwt_initialise(uint16 config)
 
     // Read and validate device ID return -1 if not recognised
     dw1000local.deviceID = dwt_readdevid() ;
-	  printf("dw1000local.deviceID = 0x%x\r\n",dw1000local.deviceID);
+	printf("dw1000local.deviceID = 0x%x\r\n",dw1000local.deviceID);
     if (DWT_DEVICE_ID != dw1000local.deviceID) // MP IC ONLY (i.e. DW1000) FOR THIS CODE
     {
         return DWT_ERROR ;
@@ -168,7 +168,7 @@ int dwt_initialise(uint16 config)
     }
     // Configure XTAL trim
     dwt_xtaltrim(dw1000local.xtrim);
-#if  0
+#if  1
     // Load leading edge detect code
     if(config & DWT_LOADUCODE)
 		{
@@ -2585,6 +2585,7 @@ void _dwt_enableclocks(int clocks)
     uint8 reg[2];
 
     dwt_readfromdevice(PMSC_ID, PMSC_CTRL0_OFFSET, 2, reg);
+	printf("before:reg[0] = 0x%d reg[1] = 0x%x\r\n",reg[0],reg[1]) ;
     switch(clocks)
     {
         case ENABLE_ALL_SEQ:
@@ -2641,6 +2642,8 @@ void _dwt_enableclocks(int clocks)
     // Need to write lower byte separately before setting the higher byte(s)
     dwt_writetodevice(PMSC_ID, PMSC_CTRL0_OFFSET, 1, &reg[0]);
     dwt_writetodevice(PMSC_ID, 0x1, 1, &reg[1]);
+	dwt_readfromdevice(PMSC_ID, PMSC_CTRL0_OFFSET, 2, reg);
+	printf("after:reg[0] = 0x%d\t reg[1] = 0x%x\r\n",reg[0],reg[1]) ;
 
 } // end _dwt_enableclocks()
 
