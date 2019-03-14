@@ -106,6 +106,7 @@ int writetospi_serial
  * or returns -1 if there was an error
  */
 #pragma GCC optimize ("O3")
+uint8_t spi_TmpBuffer[BUFFLEN];
 int readfromspi_serial
 (
     uint16       headerLength,
@@ -114,7 +115,11 @@ int readfromspi_serial
     uint8       *readBuffer
 )
 {
-	uint8_t spi_TmpBuffer[BUFFLEN];
+/*	
+* Should not alloce so large memory in stack. Allocate this memory in globe heap.  
+*uint8_t spi_TmpBuffer[BUFFLEN]; 
+*   
+*/
 	assert_param(headerLength+readLength < BUFFLEN );
 	
 //    decaIrqStatus_t  stat ;
