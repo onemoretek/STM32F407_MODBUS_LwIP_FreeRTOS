@@ -54,7 +54,8 @@ uint8_t GATEWAY_ADDRESS[4];
   */
 void MX_LWIP_Init(void)
 {
-  /* IP addresses initialization */
+  /* 
+  *IP addresses initialization 
   IP_ADDRESS[0] = 192;
   IP_ADDRESS[1] = 168;
   IP_ADDRESS[2] = 1;
@@ -67,7 +68,7 @@ void MX_LWIP_Init(void)
   GATEWAY_ADDRESS[1] = 168;
   GATEWAY_ADDRESS[2] = 1;
   GATEWAY_ADDRESS[3] = 1;
-  
+*/  
   /* Initilialize the LwIP stack with RTOS */
   tcpip_init( NULL, NULL );
 

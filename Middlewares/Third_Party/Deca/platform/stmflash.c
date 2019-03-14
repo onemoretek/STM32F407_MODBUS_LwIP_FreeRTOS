@@ -195,23 +195,20 @@ void FLASH_read(void)
 	GATEWAY_ADDRESS[3] = save_x[43];
 		Flash_FLAG = save_x[99];
 
-		if(Flash_FLAG != 0xab) 
-		{
+	if(Flash_FLAG != 0xab) 
+	{
 			Flash_FLAG=0xab;
 			Flash_Usart_BaudRate = 0x0007;
 			Flash_Modbus_ADDR    = 0x0001;
 			Flash_Device_Mode    = 0x0000;
 			Flash_Device_ID      = 0x0000;
 			Flash_structure_Mode = 0x0000;
-			for(q=0;q<3;q++)
-			{
-			Flash_MAJOR_BS_X_Y_Z[q]=0x0000;
+			for(q=0;q<3;q++)  {
+				Flash_MAJOR_BS_X_Y_Z[q]=0x0000;
 			}
 	
-			for(o=0;o<6;o++)
-			{
-					for(q=0;q<4;q++)
-					{
+			for(o=0;o<6;o++) {
+					for(q=0;q<4;q++) {
 							Flash_BS_EN_X_Y_Z[o][q]=0x0000;
 					}
 			}
@@ -231,5 +228,5 @@ void FLASH_read(void)
 			GATEWAY_ADDRESS[2] = 1;
 			GATEWAY_ADDRESS[3] = 1;
 			FLASH_write();
-		}		
+	}		
 }
