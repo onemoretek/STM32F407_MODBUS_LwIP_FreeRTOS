@@ -21,13 +21,13 @@
  *
  * @author Decawave
  */
- 
+
  /*! ----------------------------------------------------------------------------
- *本程序基于官方提供程序修改！
- *支持一对一测距，多基站多标签二维定位
- * @author 广州联网科技有限公司
- */
- 
+  *本程序基于官方提供程序修改！
+  *支持一对一测距，多基站多标签二维定位
+  * @author 广州联网科技有限公司
+  */
+
 #include <string.h>
 #include <stdio.h>
 #include "deca_device_api.h"
@@ -52,70 +52,70 @@ typedef unsigned long long uint64;
 /******************************************************************************
 														内存FLASH区数据
 *******************************************************************************/
-uint16   Flash_Usart_BaudRate;       //设备串口通讯波特率 0：4800  1：9600 2：14400 3：19200 4：38400 5：56000 6：57600 7：115200  8：128000 9：256000
-uint16   Flash_Modbus_ADDR;        	//Modbus ID号 
-uint16   Flash_structure_Mode;     	//0:为二维平面3基站模式
-uint16   Flash_Device_Mode;       		//设备模式 0：标签 1：次基站 2：主基站
-uint16   Flash_Device_ID;        	  //高8位为次基站ID，范围0~6  低8位为标签ID 0~247    （程序内部 标签ID为0~247  次基站ID为248~245  主基站ID为255）
-uint16   Flash_MAJOR_BS_X_Y_Z[3];    //6次基站的位置，      X,Y,Z各两字节
-uint16   Flash_BS_EN_X_Y_Z[6][4];    //6次基站的位置，    使能标志：0为关  1为开   X,Y,Z各两字节
-uint16   Flash_FLAG;	 								//标志位
-
+uint16 Flash_Usart_BaudRate;	//设备串口通讯波特率 0：4800  1：9600 2：14400 3：19200 4：38400 5：56000 6：57600 7：115200  8：128000 9：256000
+uint16 Flash_Modbus_ADDR;	//Modbus ID号 
+uint16 Flash_structure_Mode;	//0:为二维平面3基站模式
+uint16 Flash_Device_Mode;	//设备模式 0：标签 1：次基站 2：主基站
+uint16 Flash_Device_ID;		//高8位为次基站ID，范围0~6  低8位为标签ID 0~247    （程序内部 标签ID为0~247  次基站ID为248~245  主基站ID为255）
+uint16 Flash_MAJOR_BS_X_Y_Z[3];	//6次基站的位置，      X,Y,Z各两字节
+uint16 Flash_BS_EN_X_Y_Z[6][4];	//6次基站的位置，    使能标志：0为关  1为开   X,Y,Z各两字节
+uint16 Flash_FLAG;		//标志位
 
 /******************************************************************************
 														 计算使用变量
 *******************************************************************************/
-uint16   Calculate_EN;       			//测量使能
-uint16   Calculate_TAG_ID;					//测量标签ID
-uint16		Calculate_FLAG;						//测量状态标志
-uint16		Calculate_TAG_X;					//测量标签的X轴
-uint16		Calculate_TAG_Y;					//测量标签的Y轴
-uint16		Calculate_TAG_Z;     			//测量标签的Z轴
-uint16		Calculate_Station_TAG[7]; //测量标签的距离
-
+uint16 Calculate_EN;		//测量使能
+uint16 Calculate_TAG_ID;	//测量标签ID
+uint16 Calculate_FLAG;		//测量状态标志
+uint16 Calculate_TAG_X;		//测量标签的X轴
+uint16 Calculate_TAG_Y;		//测量标签的Y轴
+uint16 Calculate_TAG_Z;		//测量标签的Z轴
+uint16 Calculate_Station_TAG[7];	//测量标签的距离
 
 /******************************************************************************
 														系统流程循环标志位
 *******************************************************************************/
-uint8 SYS_Calculate_ACTIVE_FLAG=0;   				//系统循环标志位主动测距函数
-uint8 SYS_Calculate_PASSIVE_FLAG=0;   				//系统循环标志位被动测距函数
-uint8 SYS_BS_FLAG=0;    				//系统循环标志位-次基站
-uint8 SYS_MAJOR_BS_FLAG=0;     //系统循环标志位-主基站
-uint8 SYS_BS_TAG_FLAG=0;       //次基站收到需要测距标签的ID
-uint8 SYS_BS_MESSAGE_FLAG=0;       //主基站联系次基站标志位
-uint8 SYS_BS_MESSAGE_Timer_FLAG=0;       //主基站等待次基站回复允许错误数据次数缓存区
+uint8 SYS_Calculate_ACTIVE_FLAG = 0;	//系统循环标志位主动测距函数
+uint8 SYS_Calculate_PASSIVE_FLAG = 0;	//系统循环标志位被动测距函数
+uint8 SYS_BS_FLAG = 0;		//系统循环标志位-次基站
+uint8 SYS_MAJOR_BS_FLAG = 0;	//系统循环标志位-主基站
+uint8 SYS_BS_TAG_FLAG = 0;	//次基站收到需要测距标签的ID
+uint8 SYS_BS_MESSAGE_FLAG = 0;	//主基站联系次基站标志位
+uint8 SYS_BS_MESSAGE_Timer_FLAG = 0;	//主基站等待次基站回复允许错误数据次数缓存区
 
 /******************************************************************************
 														系统流程自定义
 *******************************************************************************/
-#define KALMAN_Q 3        	  //卡尔曼滤波-Q
-#define KALMAN_R 10						//卡尔曼滤波-R
-uint16 Time_time4_Cuo=0;   			 //记录时间戳-测试用
-uint16 Time_time4_Cuo_buf[10];   //记录时间戳缓存组-测试用
-uint32 MODBUS_BaudRate[10]={4800,9600,14400,19200,38400,56000,57600,115200,128000,256000};    //波特率列表
-int16 SYS_dis_buf_t[7];  	//主基站获取到的距离数据缓存区
-uint16 TAG_ID;   							//测距标签ID
-uint16 ERROR_FLAG;  						//测距错误计算次数标志位，达到一定次数跳出
+#define KALMAN_Q 3		//卡尔曼滤波-Q
+#define KALMAN_R 10		//卡尔曼滤波-R
+uint16 Time_time4_Cuo = 0;	//记录时间戳-测试用
+uint16 Time_time4_Cuo_buf[10];	//记录时间戳缓存组-测试用
+uint32 MODBUS_BaudRate[10] = { 4800, 9600, 14400, 19200, 38400, 56000, 57600, 115200, 128000, 256000 };	//波特率列表
 
-uint16 LED_FLAG=0;     		//系统指示灯记录标志位
+int16 SYS_dis_buf_t[7];		//主基站获取到的距离数据缓存区
+uint16 TAG_ID;			//测距标签ID
+uint16 ERROR_FLAG;		//测距错误计算次数标志位，达到一定次数跳出
 
+uint16 LED_FLAG = 0;		//系统指示灯记录标志位
 
 /******************************************************************************
 														DWM1000测距计算变量
 *******************************************************************************/
 // DWM1000通讯数据包                 A_ID  B_ID  帧    命令  
-static uint8 Send_get_dist_msg[] = {0X00, 0x00, 0x00, 0xCA,'1','1','1','1','2','2','2','2','3','3','3','3','4','4','4','4','5','5','5','5','6','6','6','6','D','D'};
-	
-#define RX_BUF_LEN 30               //DWM1000接收数据包长度
-static uint8 rx_buffer[RX_BUF_LEN]; //DWM1000接收数据包缓存区
-	
-static int16_t dist[20];    //LP低通滤波缓存
-static double tof;             //光速
-static double distance,dist2;  //理论距离 ，估算距离
-int32_t dis;             		//测距距离缓存   
-uint32 frame_len;        		//DWM1000收发数据包长度缓存
-static uint32 Time_ts[6];  					//飞行时间缓存记录
-	
+static uint8 Send_get_dist_msg[] =
+    { 0X00, 0x00, 0x00, 0xCA, '1', '1', '1', '1', '2', '2', '2', '2', '3', '3',
+'3', '3', '4', '4', '4', '4', '5', '5', '5', '5', '6', '6', '6', '6', 'D', 'D' };
+
+#define RX_BUF_LEN 30		//DWM1000接收数据包长度
+static uint8 rx_buffer[RX_BUF_LEN];	//DWM1000接收数据包缓存区
+
+static int16_t dist[20];	//LP低通滤波缓存
+static double tof;		//光速
+static double distance, dist2;	//理论距离 ，估算距离
+int32_t dis;			//测距距离缓存   
+uint32 frame_len;		//DWM1000收发数据包长度缓存
+static uint32 Time_ts[6];	//飞行时间缓存记录
+
 /* Frame sequence number, incremented after each transmission. 帧序列号，每次传输后递增。 */
 static uint32 frame_seq_nb = 0;
 
@@ -135,10 +135,11 @@ UWB微秒（UUS）到设备时间单位（DTU，约15.65 ps）的转换系数。
 *******************************************************************************/
 static uint64 get_tx_timestamp_u64(void);
 static uint64 get_rx_timestamp_u64(void);
-static void final_msg_set_ts(uint8 *ts_field, uint64 ts);
-static void final_msg_set_dist(uint8 *ts_field, uint32 dist);
+static void final_msg_set_ts(uint8 * ts_field, uint64 ts);
+static void final_msg_set_dist(uint8 * ts_field, uint32 dist);
 
-static void System_Info(void)
+static void
+System_Info(void)
 {
 	printf("+------------------------------------------+\r\n");
 	printf("|          FreeRTOS+LwIP System            |\r\n");
@@ -146,825 +147,822 @@ static void System_Info(void)
 	printf("|           All rights reserved.           |\r\n");
 	printf("+------------------------------------------+\r\n");
 	printf(" Product: %s\r\n", BOARD_NAME);
-	printf(" Network Card:%s\r\n",NETWORK_CARD);
+	printf(" Network Card:%s\r\n", NETWORK_CARD);
 	printf(" Version: %s\r\n", SYSTEM_VER);
 	printf(" Release: %s %s\r\n", __DATE__, __TIME__);
 	printf("+------------------------------------------+\r\n");
 }
+
 /******************************************************************************
 												    基站呼叫标签并进行测距
 *******************************************************************************/
-int32_t DW1000send(uint8_t A_ID,uint8_t B_ID) //主动模式
+int32_t
+DW1000send(uint8_t A_ID, uint8_t B_ID)	//主动模式
 {
-		   
-			  uint32 i;
-				if(SYS_Calculate_ACTIVE_FLAG==0)
-				{
-						for(i=0;i<30;i++)
-						{
-								Send_get_dist_msg[i]=0x00;
-						}
-						Send_get_dist_msg[0] =  A_ID;	//UWB POLL 包数据
-						Send_get_dist_msg[1] =  B_ID;//UWB Fianl 包数据
-						Send_get_dist_msg[2] = frame_seq_nb;
-						Send_get_dist_msg[3]=0XAB; 						
-						dwt_writetxdata(sizeof(Send_get_dist_msg), Send_get_dist_msg, 0);//将Poll包数据传给DW1000，将在开启发送时传出去
-						dwt_writetxfctrl(sizeof(Send_get_dist_msg), 0);//设置超宽带发送数据长度
-						dwt_setrxaftertxdelay(0);
-						dwt_setrxtimeout(5000);						//设置接收超时时间
-						dwt_starttx(DWT_START_TX_IMMEDIATE| DWT_RESPONSE_EXPECTED);//开启发送，发送完成后等待一段时间开启接收，等待时间在dwt_setrxaftertxdelay中设置;
-						SYS_Calculate_ACTIVE_FLAG=1;
-				}			
-				if(SYS_Calculate_ACTIVE_FLAG==1)
-				{			
-						if((status_reg = dwt_read32bitreg(SYS_STATUS_ID)) & (SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_ERR))//不断查询芯片状态直到成功接收或者发生错误
-						{
-							SYS_Calculate_ACTIVE_FLAG=2;
-						}
-						else return 0;
-				}
-				if(SYS_Calculate_ACTIVE_FLAG==2)
-				{
-						if(frame_seq_nb<0xFFFFFFFF)frame_seq_nb++;
-						else frame_seq_nb=0;
-						if (status_reg & SYS_STATUS_RXFCG)//如果成功接收
-						{									
-								SYS_Calculate_ACTIVE_FLAG=3;
-						}
-						else 
-						{
-							 
-								dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_ALL_RX_ERR);		
-							SYS_Calculate_ACTIVE_FLAG=0;
-							  return	0;	
-						}
-				}
-								
-        if(SYS_Calculate_ACTIVE_FLAG==3)
-				{
-            dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG | SYS_STATUS_TXFRS);//清楚寄存器标志位
-            frame_len = dwt_read32bitreg(RX_FINFO_ID) & RX_FINFO_RXFLEN_MASK;	//获得接收到的数据长度
-            dwt_readrxdata(rx_buffer, frame_len, 0);   //读取接收数据
-            
-						if (rx_buffer[3]==0xBC)//判断接收到的数据是否是response数据
-            {  
-								SYS_Calculate_ACTIVE_FLAG=4;
-						}
-						else 
-						{
-							dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_ALL_RX_ERR);	
-							SYS_Calculate_ACTIVE_FLAG=0;
-							return 0;							
-						}		
-				}
-				if(SYS_Calculate_ACTIVE_FLAG==4)
-				{
-							  for(i=0;i<30;i++)
-								{
-									 Send_get_dist_msg[i]=rx_buffer[i];
-								}								
-                Time_ts[0] = get_tx_timestamp_u64();										//获得POLL发送时间T1
-                Time_ts[3] = get_rx_timestamp_u64();										//获得RESPONSE接收时间T4
-                final_msg_set_ts(&Send_get_dist_msg[4],Time_ts[0]);//将T1写入发送数据
-                final_msg_set_ts(&Send_get_dist_msg[16],Time_ts[3]);//将T4写入发送数据
-							
-							  Send_get_dist_msg[3]=0XCD; 
-                Send_get_dist_msg[2] = frame_seq_nb;
-                dwt_writetxdata(sizeof(Send_get_dist_msg), Send_get_dist_msg, 0);//将发送数据写入DW1000
-                dwt_writetxfctrl(sizeof(Send_get_dist_msg), 0);//设定发送数据长度
-								dwt_setrxaftertxdelay(0);
-								dwt_setrxtimeout(5000);						//设置接收超时时间
-                dwt_starttx(DWT_START_TX_IMMEDIATE| DWT_RESPONSE_EXPECTED);//设定为延迟发送
-								SYS_Calculate_ACTIVE_FLAG=5;						
-					}
-				
-					if(SYS_Calculate_ACTIVE_FLAG==5)
-					{
-								if ((status_reg = dwt_read32bitreg(SYS_STATUS_ID)) & (SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_ERR))//不断查询芯片状态直到成功接收或者发生错误
-								{ 
-									SYS_Calculate_ACTIVE_FLAG=6;
-								}
-								else return 0;
-					}
-					if(SYS_Calculate_ACTIVE_FLAG==6)
-					{
-								
-							if(frame_seq_nb<0xFFFFFFFF)frame_seq_nb++;
-							else frame_seq_nb=0;
-							if (status_reg & SYS_STATUS_RXFCG)//如果成功接收
-							{	
-									SYS_Calculate_ACTIVE_FLAG=7;	
-							}
-							else 
-							{
-									
-									dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_ALL_RX_ERR);	
-									SYS_Calculate_ACTIVE_FLAG=0;								
-									return	0;								
-							}
-					}
-					if(SYS_Calculate_ACTIVE_FLAG==7)
-					{
-							dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG | SYS_STATUS_TXFRS);//清楚寄存器标志位
-							frame_len = dwt_read32bitreg(RX_FINFO_ID) & RX_FINFO_RXFLEN_MASK;	//获得接收到的数据长度
-							dwt_readrxdata(rx_buffer, frame_len, 0);   //读取接收数据						
-							if (rx_buffer[3]==0xDE)//判断接收到的数据是否是response数据
-							{
-									SYS_Calculate_ACTIVE_FLAG=8;
-							}
-							else 
-							{
-									dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_ALL_RX_ERR);	
-									SYS_Calculate_ACTIVE_FLAG=0;
-									return 0;
-							}
-					}
-					if(SYS_Calculate_ACTIVE_FLAG==8)
-					{
-							uint32 Time_ts_F[6];
-							double Ra, Rb, Da, Db;
-               int64 tof_dtu;
-							 for(i=0;i<30;i++)
-							{								
-									Send_get_dist_msg[i]=rx_buffer[i];
-							}
-							final_msg_get_ts(&rx_buffer[4], &Time_ts_F[0]);
-							final_msg_get_ts(&rx_buffer[8], &Time_ts_F[1]);
-							final_msg_get_ts(&rx_buffer[12], &Time_ts_F[2]);
-							final_msg_get_ts(&rx_buffer[16], &Time_ts_F[3]);
-							final_msg_get_ts(&rx_buffer[24], &Time_ts_F[5]);									
-							Time_ts[0]= (uint32)Time_ts_F[0];
-							Time_ts[1]= (uint32)Time_ts_F[1];
-							Time_ts[2]= (uint32)Time_ts_F[2];
-							Time_ts[3]= (uint32)Time_ts_F[3];
-							Time_ts[4]= (uint32)get_tx_timestamp_u64();	
-							Time_ts[5]= (uint32)Time_ts_F[5];
 
-							Ra = (double)(Time_ts[3] - Time_ts[0]);//Tround1 = T4 - T1  
-              Rb = (double)(Time_ts[5] - Time_ts[2]);//Tround2 = T6 - T3 
-              Da = (double)(Time_ts[4] - Time_ts[3]);//Treply2 = T5 - T4  
-              Db = (double)(Time_ts[2] - Time_ts[1]);//Treply1 = T3 - T2  
-              tof_dtu = (int64)((Ra * Rb - Da * Db) / (Ra + Rb + Da + Db));//计算公式
-              tof = tof_dtu * DWT_TIME_UNITS;
-              distance = tof * SPEED_OF_LIGHT;//距离=光速*飞行时间
-							dist2 = distance - dwt_getrangebias(config.chan,(float)distance, config.prf);//距离减去矫正系数	
-							dis = dist2*100;//dis 为单位为cm的距离		
-							SYS_Calculate_ACTIVE_FLAG=0;
-							return dis;			
-					}				
-					return 0;   
+	uint32 i;
+	if (SYS_Calculate_ACTIVE_FLAG == 0) {
+		for (i = 0; i < 30; i++) {
+			Send_get_dist_msg[i] = 0x00;
+		}
+		Send_get_dist_msg[0] = A_ID;	//UWB POLL 包数据
+		Send_get_dist_msg[1] = B_ID;	//UWB Fianl 包数据
+		Send_get_dist_msg[2] = frame_seq_nb;
+		Send_get_dist_msg[3] = 0XAB;
+		dwt_writetxdata(sizeof (Send_get_dist_msg), Send_get_dist_msg, 0);	//将Poll包数据传给DW1000，将在开启发送时传出去
+		dwt_writetxfctrl(sizeof (Send_get_dist_msg), 0);	//设置超宽带发送数据长度
+		dwt_setrxaftertxdelay(0);
+		dwt_setrxtimeout(5000);	//设置接收超时时间
+		dwt_starttx(DWT_START_TX_IMMEDIATE | DWT_RESPONSE_EXPECTED);	//开启发送，发送完成后等待一段时间开启接收，等待时间在dwt_setrxaftertxdelay中设置;
+		SYS_Calculate_ACTIVE_FLAG = 1;
+	}
+	if (SYS_Calculate_ACTIVE_FLAG == 1) {
+		if ((status_reg = dwt_read32bitreg(SYS_STATUS_ID)) & (SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_ERR))	//不断查询芯片状态直到成功接收或者发生错误
+		{
+			SYS_Calculate_ACTIVE_FLAG = 2;
+		} else
+			return 0;
+	}
+	if (SYS_Calculate_ACTIVE_FLAG == 2) {
+		if (frame_seq_nb < 0xFFFFFFFF)
+			frame_seq_nb++;
+		else
+			frame_seq_nb = 0;
+		if (status_reg & SYS_STATUS_RXFCG)	//如果成功接收
+		{
+			SYS_Calculate_ACTIVE_FLAG = 3;
+		} else {
+
+			dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_ALL_RX_ERR);
+			SYS_Calculate_ACTIVE_FLAG = 0;
+			return 0;
+		}
+	}
+
+	if (SYS_Calculate_ACTIVE_FLAG == 3) {
+		dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG | SYS_STATUS_TXFRS);	//清楚寄存器标志位
+		frame_len = dwt_read32bitreg(RX_FINFO_ID) & RX_FINFO_RXFLEN_MASK;	//获得接收到的数据长度
+		dwt_readrxdata(rx_buffer, frame_len, 0);	//读取接收数据
+
+		if (rx_buffer[3] == 0xBC)	//判断接收到的数据是否是response数据
+		{
+			SYS_Calculate_ACTIVE_FLAG = 4;
+		} else {
+			dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_ALL_RX_ERR);
+			SYS_Calculate_ACTIVE_FLAG = 0;
+			return 0;
+		}
+	}
+	if (SYS_Calculate_ACTIVE_FLAG == 4) {
+		for (i = 0; i < 30; i++) {
+			Send_get_dist_msg[i] = rx_buffer[i];
+		}
+		Time_ts[0] = get_tx_timestamp_u64();	//获得POLL发送时间T1
+		Time_ts[3] = get_rx_timestamp_u64();	//获得RESPONSE接收时间T4
+		final_msg_set_ts(&Send_get_dist_msg[4], Time_ts[0]);	//将T1写入发送数据
+		final_msg_set_ts(&Send_get_dist_msg[16], Time_ts[3]);	//将T4写入发送数据
+
+		Send_get_dist_msg[3] = 0XCD;
+		Send_get_dist_msg[2] = frame_seq_nb;
+		dwt_writetxdata(sizeof (Send_get_dist_msg), Send_get_dist_msg, 0);	//将发送数据写入DW1000
+		dwt_writetxfctrl(sizeof (Send_get_dist_msg), 0);	//设定发送数据长度
+		dwt_setrxaftertxdelay(0);
+		dwt_setrxtimeout(5000);	//设置接收超时时间
+		dwt_starttx(DWT_START_TX_IMMEDIATE | DWT_RESPONSE_EXPECTED);	//设定为延迟发送
+		SYS_Calculate_ACTIVE_FLAG = 5;
+	}
+
+	if (SYS_Calculate_ACTIVE_FLAG == 5) {
+		if ((status_reg = dwt_read32bitreg(SYS_STATUS_ID)) & (SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_ERR))	//不断查询芯片状态直到成功接收或者发生错误
+		{
+			SYS_Calculate_ACTIVE_FLAG = 6;
+		} else
+			return 0;
+	}
+	if (SYS_Calculate_ACTIVE_FLAG == 6) {
+
+		if (frame_seq_nb < 0xFFFFFFFF)
+			frame_seq_nb++;
+		else
+			frame_seq_nb = 0;
+		if (status_reg & SYS_STATUS_RXFCG)	//如果成功接收
+		{
+			SYS_Calculate_ACTIVE_FLAG = 7;
+		} else {
+
+			dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_ALL_RX_ERR);
+			SYS_Calculate_ACTIVE_FLAG = 0;
+			return 0;
+		}
+	}
+	if (SYS_Calculate_ACTIVE_FLAG == 7) {
+		dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG | SYS_STATUS_TXFRS);	//清楚寄存器标志位
+		frame_len = dwt_read32bitreg(RX_FINFO_ID) & RX_FINFO_RXFLEN_MASK;	//获得接收到的数据长度
+		dwt_readrxdata(rx_buffer, frame_len, 0);	//读取接收数据                                               
+		if (rx_buffer[3] == 0xDE)	//判断接收到的数据是否是response数据
+		{
+			SYS_Calculate_ACTIVE_FLAG = 8;
+		} else {
+			dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_ALL_RX_ERR);
+			SYS_Calculate_ACTIVE_FLAG = 0;
+			return 0;
+		}
+	}
+	if (SYS_Calculate_ACTIVE_FLAG == 8) {
+		uint32 Time_ts_F[6];
+		double Ra, Rb, Da, Db;
+		int64 tof_dtu;
+		for (i = 0; i < 30; i++) {
+			Send_get_dist_msg[i] = rx_buffer[i];
+		}
+		final_msg_get_ts(&rx_buffer[4], &Time_ts_F[0]);
+		final_msg_get_ts(&rx_buffer[8], &Time_ts_F[1]);
+		final_msg_get_ts(&rx_buffer[12], &Time_ts_F[2]);
+		final_msg_get_ts(&rx_buffer[16], &Time_ts_F[3]);
+		final_msg_get_ts(&rx_buffer[24], &Time_ts_F[5]);
+		Time_ts[0] = (uint32) Time_ts_F[0];
+		Time_ts[1] = (uint32) Time_ts_F[1];
+		Time_ts[2] = (uint32) Time_ts_F[2];
+		Time_ts[3] = (uint32) Time_ts_F[3];
+		Time_ts[4] = (uint32) get_tx_timestamp_u64();
+		Time_ts[5] = (uint32) Time_ts_F[5];
+
+		Ra = (double) (Time_ts[3] - Time_ts[0]);	//Tround1 = T4 - T1  
+		Rb = (double) (Time_ts[5] - Time_ts[2]);	//Tround2 = T6 - T3 
+		Da = (double) (Time_ts[4] - Time_ts[3]);	//Treply2 = T5 - T4  
+		Db = (double) (Time_ts[2] - Time_ts[1]);	//Treply1 = T3 - T2  
+		tof_dtu = (int64) ((Ra * Rb - Da * Db) / (Ra + Rb + Da + Db));	//计算公式
+		tof = tof_dtu * DWT_TIME_UNITS;
+		distance = tof * SPEED_OF_LIGHT;	//距离=光速*飞行时间
+		dist2 = distance - dwt_getrangebias(config.chan, (float) distance, config.prf);	//距离减去矫正系数 
+		dis = dist2 * 100;	//dis 为单位为cm的距离          
+		SYS_Calculate_ACTIVE_FLAG = 0;
+		return dis;
+	}
+	return 0;
 }
-
-
 
 /******************************************************************************
 												    标签应答基站并进行测距
 *******************************************************************************/
-int32_t DW1000receive(uint8_t B_ID) //被动
+int32_t
+DW1000receive(uint8_t B_ID)	//被动
 {
-				uint32 i;
-	      if(SYS_Calculate_PASSIVE_FLAG==0)  //打开接收
-				{
-						dwt_setrxtimeout(0);//设定接收超时时间，0位没有超时时间
-						dwt_rxenable(0);//打开接收
-						SYS_Calculate_PASSIVE_FLAG=1;
-				}
-				if(SYS_Calculate_PASSIVE_FLAG==1)  //等待接收
-				{
-						if((status_reg = dwt_read32bitreg(SYS_STATUS_ID)) & (SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_ERR))//不断查询芯片状态直到接收成功或者出现错误
-						{
-							SYS_Calculate_PASSIVE_FLAG=2;
-						}
-						else return 0;
-				}
-			  
-				if(SYS_Calculate_PASSIVE_FLAG==2)  //验证是否成功接收
-				{
-						if (status_reg & SYS_STATUS_RXFCG)//成功接收
-						{
-								SYS_Calculate_PASSIVE_FLAG=3;
-						}
-						else
-						{
-								/* Clear RX error events in the DW1000 status register. */
-								dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_ALL_RX_ERR);
-								SYS_Calculate_PASSIVE_FLAG=0;							
-								return 0;
-						}
-				}
-				if(SYS_Calculate_PASSIVE_FLAG==3)   //判断是否为有效数据包
-				{
-							dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG);//清楚标志位
-							frame_len = dwt_read32bitreg(RX_FINFO_ID) & RX_FINFO_RXFL_MASK_1023;//获得接收数据长度
-							dwt_readrxdata(rx_buffer, frame_len, 0);//读取接收数据
-							if (rx_buffer[3]==0xAB&&B_ID==rx_buffer[1])//判断数据
-							{       
-									SYS_Calculate_PASSIVE_FLAG=4;
-							}
-							else 
-							{	
-								  SYS_Calculate_PASSIVE_FLAG=0;
-									return 0;
-							}
-					}
-					if(SYS_Calculate_PASSIVE_FLAG==4)  //发送数据后打开接收
-					{
-							for(i=0;i<30;i++)
-							{
-									Send_get_dist_msg[i]=rx_buffer[i];
-							}							
-							Time_ts[1] = get_rx_timestamp_u64();//获得Poll包接收时间T2
-							final_msg_set_ts(&Send_get_dist_msg[8],Time_ts[1]);//将T2写入发送数据
-							Send_get_dist_msg[2] = frame_seq_nb;
-							Send_get_dist_msg[3]=0XBC; 
-							dwt_writetxdata(sizeof(Send_get_dist_msg), Send_get_dist_msg, 0);//写入发送数据
-							dwt_writetxfctrl(sizeof(Send_get_dist_msg), 0);//设定发送长度
-							dwt_setrxaftertxdelay(0);//设置发送后开启接收，并设定延迟时间
-							dwt_setrxtimeout(5000);						//设置接收超时时间
-							dwt_starttx(DWT_START_TX_IMMEDIATE | DWT_RESPONSE_EXPECTED);//立即发送，等待接收      
-							SYS_Calculate_PASSIVE_FLAG=5;
-					}							
-					if(SYS_Calculate_PASSIVE_FLAG==5)  //等待接收
-					{
-								if ((status_reg = dwt_read32bitreg(SYS_STATUS_ID)) & (SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_ERR))///不断查询芯片状态直到接收成功或者出现错误
-								{ 
-										SYS_Calculate_PASSIVE_FLAG=6;
-								}
-								else return 0;
-					}
-					if(SYS_Calculate_PASSIVE_FLAG==6)  //验证是否成功接收
-					{							
-							if(frame_seq_nb<0xFFFFFFFF)frame_seq_nb++;
-							else frame_seq_nb=0;
-							if (status_reg & SYS_STATUS_RXFCG)//接收成功
-							{
-									SYS_Calculate_PASSIVE_FLAG=7;
-							}
-							else
-							{
-                   /* Clear RX error events in the DW1000 status register. */
-                   dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_ALL_RX_ERR);			
-									SYS_Calculate_PASSIVE_FLAG=0;
-									return 0;
-							}
-					}
-					if(SYS_Calculate_PASSIVE_FLAG==7)  //判断是否为有效数据
-					{															
-							dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG | SYS_STATUS_TXFRS);//清楚标志位
-							frame_len = dwt_read32bitreg(RX_FINFO_ID) & RX_FINFO_RXFLEN_MASK;//数据长度
-							dwt_readrxdata(rx_buffer, frame_len, 0);//读取接收数据
-							if (rx_buffer[3]==0xCD&&B_ID==rx_buffer[1])//判断是否为Fianl包
-							{
-								SYS_Calculate_PASSIVE_FLAG=8;
-							}
-							else 
-							{
-								SYS_Calculate_PASSIVE_FLAG=0;
-								return 0;
-							}
-					}						
-					if(SYS_Calculate_PASSIVE_FLAG==8)  //返回数据
-					{						
-							for(i=0;i<30;i++)
-							{
-									Send_get_dist_msg[i]=rx_buffer[i];
-							}
-												
-              /* Retrieve response transmission and final reception timestamps. */
-							Send_get_dist_msg[3]=0XDE; 
-							Time_ts[2] = get_tx_timestamp_u64();//获得response发送时间T3
-							Time_ts[5] = get_rx_timestamp_u64();//获得final接收时间T6
-							final_msg_set_ts(&Send_get_dist_msg[12],Time_ts[2]);//将T3写入发送数据
-							final_msg_set_ts(&Send_get_dist_msg[24],Time_ts[5]);//将T6写入发送数据
-							dwt_writetxdata(sizeof(Send_get_dist_msg), Send_get_dist_msg, 0);//写入发送数据
-							dwt_writetxfctrl(sizeof(Send_get_dist_msg), 0);//设定发送长度
-							dwt_starttx(DWT_START_TX_IMMEDIATE );//设定为延迟发送
-							SYS_Calculate_PASSIVE_FLAG=9;
-					}						
-					if(SYS_Calculate_PASSIVE_FLAG==9)  //验证是否发送完成
-					{						
-							if (dwt_read32bitreg(SYS_STATUS_ID) & SYS_STATUS_TXFRS)//不断查询芯片状态直到发送完成
-							{ 
-									dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS);//清楚标志位										
-									SYS_Calculate_PASSIVE_FLAG=0;
-//									GPIO_Toggle(LED_GPIO,LED);
-									return 1;
-							}
-							else return 0;
-					 }									
-				 return 0;	
-}
+	uint32 i;
+	if (SYS_Calculate_PASSIVE_FLAG == 0)	//打开接收
+	{
+		dwt_setrxtimeout(0);	//设定接收超时时间，0位没有超时时间
+		dwt_rxenable(0);	//打开接收
+		SYS_Calculate_PASSIVE_FLAG = 1;
+	}
+	if (SYS_Calculate_PASSIVE_FLAG == 1)	//等待接收
+	{
+		if ((status_reg = dwt_read32bitreg(SYS_STATUS_ID)) & (SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_ERR))	//不断查询芯片状态直到接收成功或者出现错误
+		{
+			SYS_Calculate_PASSIVE_FLAG = 2;
+		} else
+			return 0;
+	}
 
+	if (SYS_Calculate_PASSIVE_FLAG == 2)	//验证是否成功接收
+	{
+		if (status_reg & SYS_STATUS_RXFCG)	//成功接收
+		{
+			SYS_Calculate_PASSIVE_FLAG = 3;
+		} else {
+			/* Clear RX error events in the DW1000 status register. */
+			dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_ALL_RX_ERR);
+			SYS_Calculate_PASSIVE_FLAG = 0;
+			return 0;
+		}
+	}
+	if (SYS_Calculate_PASSIVE_FLAG == 3)	//判断是否为有效数据包
+	{
+		dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG);	//清楚标志位
+		frame_len = dwt_read32bitreg(RX_FINFO_ID) & RX_FINFO_RXFL_MASK_1023;	//获得接收数据长度
+		dwt_readrxdata(rx_buffer, frame_len, 0);	//读取接收数据
+		if (rx_buffer[3] == 0xAB && B_ID == rx_buffer[1])	//判断数据
+		{
+			SYS_Calculate_PASSIVE_FLAG = 4;
+		} else {
+			SYS_Calculate_PASSIVE_FLAG = 0;
+			return 0;
+		}
+	}
+	if (SYS_Calculate_PASSIVE_FLAG == 4)	//发送数据后打开接收
+	{
+		for (i = 0; i < 30; i++) {
+			Send_get_dist_msg[i] = rx_buffer[i];
+		}
+		Time_ts[1] = get_rx_timestamp_u64();	//获得Poll包接收时间T2
+		final_msg_set_ts(&Send_get_dist_msg[8], Time_ts[1]);	//将T2写入发送数据
+		Send_get_dist_msg[2] = frame_seq_nb;
+		Send_get_dist_msg[3] = 0XBC;
+		dwt_writetxdata(sizeof (Send_get_dist_msg), Send_get_dist_msg, 0);	//写入发送数据
+		dwt_writetxfctrl(sizeof (Send_get_dist_msg), 0);	//设定发送长度
+		dwt_setrxaftertxdelay(0);	//设置发送后开启接收，并设定延迟时间
+		dwt_setrxtimeout(5000);	//设置接收超时时间
+		dwt_starttx(DWT_START_TX_IMMEDIATE | DWT_RESPONSE_EXPECTED);	//立即发送，等待接收      
+		SYS_Calculate_PASSIVE_FLAG = 5;
+	}
+	if (SYS_Calculate_PASSIVE_FLAG == 5)	//等待接收
+	{
+		if ((status_reg = dwt_read32bitreg(SYS_STATUS_ID)) & (SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_ERR))	///不断查询芯片状态直到接收成功或者出现错误
+		{
+			SYS_Calculate_PASSIVE_FLAG = 6;
+		} else
+			return 0;
+	}
+	if (SYS_Calculate_PASSIVE_FLAG == 6)	//验证是否成功接收
+	{
+		if (frame_seq_nb < 0xFFFFFFFF)
+			frame_seq_nb++;
+		else
+			frame_seq_nb = 0;
+		if (status_reg & SYS_STATUS_RXFCG)	//接收成功
+		{
+			SYS_Calculate_PASSIVE_FLAG = 7;
+		} else {
+			/* Clear RX error events in the DW1000 status register. */
+			dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_ALL_RX_ERR);
+			SYS_Calculate_PASSIVE_FLAG = 0;
+			return 0;
+		}
+	}
+	if (SYS_Calculate_PASSIVE_FLAG == 7)	//判断是否为有效数据
+	{
+		dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG | SYS_STATUS_TXFRS);	//清楚标志位
+		frame_len = dwt_read32bitreg(RX_FINFO_ID) & RX_FINFO_RXFLEN_MASK;	//数据长度
+		dwt_readrxdata(rx_buffer, frame_len, 0);	//读取接收数据
+		if (rx_buffer[3] == 0xCD && B_ID == rx_buffer[1])	//判断是否为Fianl包
+		{
+			SYS_Calculate_PASSIVE_FLAG = 8;
+		} else {
+			SYS_Calculate_PASSIVE_FLAG = 0;
+			return 0;
+		}
+	}
+	if (SYS_Calculate_PASSIVE_FLAG == 8)	//返回数据
+	{
+		for (i = 0; i < 30; i++) {
+			Send_get_dist_msg[i] = rx_buffer[i];
+		}
+
+		/* Retrieve response transmission and final reception timestamps. */
+		Send_get_dist_msg[3] = 0XDE;
+		Time_ts[2] = get_tx_timestamp_u64();	//获得response发送时间T3
+		Time_ts[5] = get_rx_timestamp_u64();	//获得final接收时间T6
+		final_msg_set_ts(&Send_get_dist_msg[12], Time_ts[2]);	//将T3写入发送数据
+		final_msg_set_ts(&Send_get_dist_msg[24], Time_ts[5]);	//将T6写入发送数据
+		dwt_writetxdata(sizeof (Send_get_dist_msg), Send_get_dist_msg, 0);	//写入发送数据
+		dwt_writetxfctrl(sizeof (Send_get_dist_msg), 0);	//设定发送长度
+		dwt_starttx(DWT_START_TX_IMMEDIATE);	//设定为延迟发送
+		SYS_Calculate_PASSIVE_FLAG = 9;
+	}
+	if (SYS_Calculate_PASSIVE_FLAG == 9)	//验证是否发送完成
+	{
+		if (dwt_read32bitreg(SYS_STATUS_ID) & SYS_STATUS_TXFRS)	//不断查询芯片状态直到发送完成
+		{
+			dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS);	//清楚标志位                                                                         
+			SYS_Calculate_PASSIVE_FLAG = 0;
+//                                                                      GPIO_Toggle(LED_GPIO,LED);
+			return 1;
+		} else
+			return 0;
+	}
+	return 0;
+}
 
 /******************************************************************************
 												    主基站通讯次基站进行测距并等待接收数据
 *******************************************************************************/
-int32_t DW1000send_dist_msg(uint8_t A_ID,uint8_t B_ID,uint8_t C_ID) //通讯次基站测距
+int32_t
+DW1000send_dist_msg(uint8_t A_ID, uint8_t B_ID, uint8_t C_ID)	//通讯次基站测距
 {
-				uint32 i=0;
-		   if(SYS_BS_MESSAGE_FLAG==0)
-			 {
-				
-						SYS_BS_MESSAGE_Timer_FLAG=0;//标志位清零
-						for(i=0;i<30;i++)
-						{
-								Send_get_dist_msg[i]=0x00;
-						}
-						Send_get_dist_msg[0] =  A_ID;	//UWB POLL 包数据
-						Send_get_dist_msg[1] =  B_ID;//UWB Fianl 包数据
-						Send_get_dist_msg[2] = frame_seq_nb;
-						Send_get_dist_msg[3]=0XEF; 
-						Send_get_dist_msg[4]=C_ID;
-						dwt_writetxdata(sizeof(Send_get_dist_msg), Send_get_dist_msg, 0);//将Poll包数据传给DW1000，将在开启发送时传出去
-						dwt_writetxfctrl(sizeof(Send_get_dist_msg), 0);//设置超宽带发送数据长度
-						dwt_setrxaftertxdelay(0);
-						dwt_starttx(DWT_START_TX_IMMEDIATE);//开启发送
-						dwt_setrxtimeout(6000);//设定接收超时时间，0位没有超时时间				
-						deca_sleep(7);//休眠固定时间	
-						SYS_BS_MESSAGE_FLAG=1;					
-			 }
-			 if(SYS_BS_MESSAGE_FLAG==1)
-			 {
-					dwt_rxenable(0);//打开接收
-				  SYS_BS_MESSAGE_FLAG=2;
-			 }
-			 if(SYS_BS_MESSAGE_FLAG==2)
-			 {				
-				  
-						if((status_reg = dwt_read32bitreg(SYS_STATUS_ID)) & (SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_ERR))//不断查询芯片状态直到成功接收或者发生错误
-						{
-							
-								SYS_BS_MESSAGE_FLAG=3;							
-						}	
-						else return 0;
-				}
-			 if(SYS_BS_MESSAGE_FLAG==3)
-			 {
-						if(frame_seq_nb<0xFFFFFFFF)frame_seq_nb++;
-						else frame_seq_nb=0;
-						if (status_reg & SYS_STATUS_RXFCG)//如果成功接收
-						{
-							SYS_BS_MESSAGE_FLAG=4;
-						}
-						else 
-						{
-								dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_ALL_RX_ERR);		
-								if(SYS_BS_MESSAGE_Timer_FLAG>7)  //错误数据少于7次重新接收，大于7次重新通讯测距
-								{
-										SYS_BS_MESSAGE_FLAG=0;	
-								}
-								else
-								{
-										SYS_BS_MESSAGE_FLAG=1;	//如果错误就重新接收
-										SYS_BS_MESSAGE_Timer_FLAG++;
-								}						
-								//SYS_BS_MESSAGE_FLAG=0;//不初始化 因为等待回信过程，有测距程序会收到无效数据包
-								return 0;
-						}
-				}
-			  if(SYS_BS_MESSAGE_FLAG==4)
-				{	
-								dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG | SYS_STATUS_TXFRS);//清楚寄存器标志位
-								frame_len = dwt_read32bitreg(RX_FINFO_ID) & RX_FINFO_RXFLEN_MASK;	//获得接收到的数据长度
-								dwt_readrxdata(rx_buffer, frame_len, 0);   //读取接收数据
-								if (rx_buffer[3]==0xFF)//判断接收到的数据是否是response数据
-								{     
-								
-										SYS_BS_MESSAGE_FLAG=5;									
-								}
-								else 
-								{
-										dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_ALL_RX_ERR);		
-									//SYS_BS_MESSAGE_FLAG=0;//不初始化 因为等待回信过程，有测距程序会收到无效数据包											
-										if(SYS_BS_MESSAGE_Timer_FLAG>7)  //错误数据少于7次重新接收，大于7次重新通讯测距
-										{
-												SYS_BS_MESSAGE_FLAG=0;	
-										}
-										else
-										{
-											  SYS_BS_MESSAGE_FLAG=1;	//如果错误就重新接收
-												SYS_BS_MESSAGE_Timer_FLAG++;
-										}
-										return 0;
-								}
-				}
-				if(SYS_BS_MESSAGE_FLAG==5)
-				{
-							uint32 rec_dist;
-							final_msg_get_ts(&rx_buffer[4], &rec_dist);
-							SYS_BS_MESSAGE_FLAG=0;
-							return rec_dist;
-				}
-				return 0;
-			
-}
+	uint32 i = 0;
+	if (SYS_BS_MESSAGE_FLAG == 0) {
 
+		SYS_BS_MESSAGE_Timer_FLAG = 0;	//标志位清零
+		for (i = 0; i < 30; i++) {
+			Send_get_dist_msg[i] = 0x00;
+		}
+		Send_get_dist_msg[0] = A_ID;	//UWB POLL 包数据
+		Send_get_dist_msg[1] = B_ID;	//UWB Fianl 包数据
+		Send_get_dist_msg[2] = frame_seq_nb;
+		Send_get_dist_msg[3] = 0XEF;
+		Send_get_dist_msg[4] = C_ID;
+		dwt_writetxdata(sizeof (Send_get_dist_msg), Send_get_dist_msg, 0);	//将Poll包数据传给DW1000，将在开启发送时传出去
+		dwt_writetxfctrl(sizeof (Send_get_dist_msg), 0);	//设置超宽带发送数据长度
+		dwt_setrxaftertxdelay(0);
+		dwt_starttx(DWT_START_TX_IMMEDIATE);	//开启发送
+		dwt_setrxtimeout(6000);	//设定接收超时时间，0位没有超时时间                              
+		deca_sleep(7);	//休眠固定时间    
+		SYS_BS_MESSAGE_FLAG = 1;
+	}
+	if (SYS_BS_MESSAGE_FLAG == 1) {
+		dwt_rxenable(0);	//打开接收
+		SYS_BS_MESSAGE_FLAG = 2;
+	}
+	if (SYS_BS_MESSAGE_FLAG == 2) {
+
+		if ((status_reg = dwt_read32bitreg(SYS_STATUS_ID)) & (SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_ERR))	//不断查询芯片状态直到成功接收或者发生错误
+		{
+
+			SYS_BS_MESSAGE_FLAG = 3;
+		} else
+			return 0;
+	}
+	if (SYS_BS_MESSAGE_FLAG == 3) {
+		if (frame_seq_nb < 0xFFFFFFFF)
+			frame_seq_nb++;
+		else
+			frame_seq_nb = 0;
+		if (status_reg & SYS_STATUS_RXFCG)	//如果成功接收
+		{
+			SYS_BS_MESSAGE_FLAG = 4;
+		} else {
+			dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_ALL_RX_ERR);
+			if (SYS_BS_MESSAGE_Timer_FLAG > 7)	//错误数据少于7次重新接收，大于7次重新通讯测距
+			{
+				SYS_BS_MESSAGE_FLAG = 0;
+			} else {
+				SYS_BS_MESSAGE_FLAG = 1;	//如果错误就重新接收
+				SYS_BS_MESSAGE_Timer_FLAG++;
+			}
+			//SYS_BS_MESSAGE_FLAG=0;//不初始化 因为等待回信过程，有测距程序会收到无效数据包
+			return 0;
+		}
+	}
+	if (SYS_BS_MESSAGE_FLAG == 4) {
+		dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG | SYS_STATUS_TXFRS);	//清楚寄存器标志位
+		frame_len = dwt_read32bitreg(RX_FINFO_ID) & RX_FINFO_RXFLEN_MASK;	//获得接收到的数据长度
+		dwt_readrxdata(rx_buffer, frame_len, 0);	//读取接收数据
+		if (rx_buffer[3] == 0xFF)	//判断接收到的数据是否是response数据
+		{
+
+			SYS_BS_MESSAGE_FLAG = 5;
+		} else {
+			dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_ALL_RX_ERR);
+			//SYS_BS_MESSAGE_FLAG=0;//不初始化 因为等待回信过程，有测距程序会收到无效数据包                                                                                 
+			if (SYS_BS_MESSAGE_Timer_FLAG > 7)	//错误数据少于7次重新接收，大于7次重新通讯测距
+			{
+				SYS_BS_MESSAGE_FLAG = 0;
+			} else {
+				SYS_BS_MESSAGE_FLAG = 1;	//如果错误就重新接收
+				SYS_BS_MESSAGE_Timer_FLAG++;
+			}
+			return 0;
+		}
+	}
+	if (SYS_BS_MESSAGE_FLAG == 5) {
+		uint32 rec_dist;
+		final_msg_get_ts(&rx_buffer[4], &rec_dist);
+		SYS_BS_MESSAGE_FLAG = 0;
+		return rec_dist;
+	}
+	return 0;
+
+}
 
 /******************************************************************************
 												    次基站应答主基站进行测距并返回数据
 *******************************************************************************/
-int32_t DW1000send_dist_msg_last(uint8_t A_ID,uint8_t B_ID,uint32_t dist) //次基站回应主基站
+int32_t
+DW1000send_dist_msg_last(uint8_t A_ID, uint8_t B_ID, uint32_t dist)	//次基站回应主基站
 {
-		   
-			  uint32 i;
-				for(i=0;i<30;i++)
-				{
-						Send_get_dist_msg[i]=0x00;
-				}
-				Send_get_dist_msg[0] =  A_ID;	//UWB POLL 包数据
-				Send_get_dist_msg[1] =  B_ID;//UWB Fianl 包数据
-			  Send_get_dist_msg[2] = frame_seq_nb;
-			  Send_get_dist_msg[3]=0XFF; 
-				final_msg_set_dist(&Send_get_dist_msg[4], dist);
-        dwt_writetxdata(sizeof(Send_get_dist_msg), Send_get_dist_msg, 0);//将Poll包数据传给DW1000，将在开启发送时传出去
-        dwt_writetxfctrl(sizeof(Send_get_dist_msg), 0);//设置超宽带发送数据长度
-				dwt_setrxaftertxdelay(0);
-				dwt_setrxtimeout(5000);						//设置接收超时时间
-        dwt_starttx(DWT_START_TX_IMMEDIATE);//开启发送   				
-				return 0;
-			
-}
 
+	uint32 i;
+	for (i = 0; i < 30; i++) {
+		Send_get_dist_msg[i] = 0x00;
+	}
+	Send_get_dist_msg[0] = A_ID;	//UWB POLL 包数据
+	Send_get_dist_msg[1] = B_ID;	//UWB Fianl 包数据
+	Send_get_dist_msg[2] = frame_seq_nb;
+	Send_get_dist_msg[3] = 0XFF;
+	final_msg_set_dist(&Send_get_dist_msg[4], dist);
+	dwt_writetxdata(sizeof (Send_get_dist_msg), Send_get_dist_msg, 0);	//将Poll包数据传给DW1000，将在开启发送时传出去
+	dwt_writetxfctrl(sizeof (Send_get_dist_msg), 0);	//设置超宽带发送数据长度
+	dwt_setrxaftertxdelay(0);
+	dwt_setrxtimeout(5000);	//设置接收超时时间
+	dwt_starttx(DWT_START_TX_IMMEDIATE);	//开启发送                                  
+	return 0;
+
+}
 
 /******************************************************************************
 												    次基站等待主基站下达测距命令信号
 *******************************************************************************/
-uint8_t DW1000rec_dist_msg(uint8_t B_ID) //次基站等待信号
+uint8_t
+DW1000rec_dist_msg(uint8_t B_ID)	//次基站等待信号
 {
-				
-		if(SYS_BS_FLAG==0)
+
+	if (SYS_BS_FLAG == 0) {
+		dwt_setrxtimeout(0);	//设定接收超时时间，0位没有超时时间
+		dwt_rxenable(0);	//打开接收
+		SYS_BS_FLAG = 1;
+	}
+	if (SYS_BS_FLAG == 1) {
+
+		if ((status_reg = dwt_read32bitreg(SYS_STATUS_ID)) & (SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_ERR))	//不断查询芯片状态直到接收成功或者出现错误
 		{
-        dwt_setrxtimeout(0);//设定接收超时时间，0位没有超时时间
-        dwt_rxenable(0);//打开接收
-				SYS_BS_FLAG=1;
+			SYS_BS_FLAG = 2;
+		} else
+			return 0;
+
+	}
+	if (SYS_BS_FLAG == 2) {
+		if (status_reg & SYS_STATUS_RXFCG)	//成功接收
+		{
+			SYS_BS_FLAG = 3;
+		} else {
+			/* Clear RX error events in the DW1000 status register. */
+			dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_ALL_RX_ERR);
+			SYS_BS_FLAG = 0;
+			return 0;
 		}
-		if(SYS_BS_FLAG==1)
+	}
+	if (SYS_BS_FLAG == 3) {
+		dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG);	//清楚标志位    
+		frame_len = dwt_read32bitreg(RX_FINFO_ID) & RX_FINFO_RXFL_MASK_1023;	//获得接收数据长度
+		dwt_readrxdata(rx_buffer, frame_len, 0);	//读取接收数据  
+		if (rx_buffer[3] == 0xEF && B_ID == rx_buffer[1])	//判断
 		{
-			
-        if((status_reg = dwt_read32bitreg(SYS_STATUS_ID)) & (SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_ERR))//不断查询芯片状态直到接收成功或者出现错误
-        { 
-					SYS_BS_FLAG=2;
-				}
-				else return 0;
-			
-		}		
-		if(SYS_BS_FLAG==2)
-		{
-        if (status_reg & SYS_STATUS_RXFCG)//成功接收
-        {
-						SYS_BS_FLAG=3;	 
-				}
-        else
-        {
-            /* Clear RX error events in the DW1000 status register. */
-            dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_ALL_RX_ERR);
-					SYS_BS_FLAG=0;
-					return 0;
-        }
+			SYS_BS_FLAG = 4;
+			return rx_buffer[4];
+		} else {
+			SYS_BS_FLAG = 0;
+			return 0;
 		}
-		if(SYS_BS_FLAG==3)
-		{
-        dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG);//清楚标志位    
-        frame_len = dwt_read32bitreg(RX_FINFO_ID) & RX_FINFO_RXFL_MASK_1023;//获得接收数据长度
-				dwt_readrxdata(rx_buffer, frame_len, 0);//读取接收数据	
-        if (rx_buffer[3]==0xEF&&B_ID==rx_buffer[1])//判断
-        {
-						SYS_BS_FLAG=4;
-						return rx_buffer[4];
-         }
-				else 
-				{
-						SYS_BS_FLAG=0;
-						return 0;
-				}	
-		}
-		return 0;		
+	}
+	return 0;
 }
 
 /******************************************************************************
 												         初始化函数
 *******************************************************************************/
-void dw_init(void)
+void
+dw_init(void)
 {
-	  System_Info();
-    peripherals_init();//初始化外设
-//	  FLASH_read();
+	System_Info();
+	peripherals_init();	//初始化外设
+//        FLASH_read();
 //    reset_DW1000();//重启DW1000 /* Target specific drive of RSTn line into DW1000 low for a period. */
 //    spi_set_rate_low();//降低SPI频率
-	  port_set_dw1000_slowrate();  //max SPI before PLLs configured is ~4M
-    dwt_initialise(DWT_LOADUCODE);//初始化DW1000
-    //spi_set_rate_high();//回复SPI频率
-	  port_set_dw1000_fastrate();  //max SPI before PLLs configured is ~4M
-	  
-	  printf("dw1000local.deviceID = 0x%x\r\n",dwt_readdevid() );
-    dwt_configure(&config);//配置DW1000
+	port_set_dw1000_slowrate();	//max SPI before PLLs configured is ~4M
+	dwt_initialise(DWT_LOADUCODE);	//初始化DW1000
+	//spi_set_rate_high();//回复SPI频率
+	port_set_dw1000_fastrate();	//max SPI before PLLs configured is ~4M
 
-    dwt_setrxantennadelay(RX_ANT_DLY);		//设置接收天线延迟
-    dwt_settxantennadelay(TX_ANT_DLY);		//设置发射天线延迟	
+	printf("dw1000local.deviceID = 0x%x\r\n", dwt_readdevid());
+	dwt_configure(&config);	//配置DW1000
+
+	dwt_setrxantennadelay(RX_ANT_DLY);	//设置接收天线延迟
+	dwt_settxantennadelay(TX_ANT_DLY);	//设置发射天线延迟      
 }
+
 /******************************************************************************
 												         主函数
 *******************************************************************************/
-int dw_main(void)
+int
+dw_main(void)
 {
 
-		{	
-			//	MODBUS_event();
-				switch(Flash_Device_Mode)
+	{
+		//      MODBUS_event();
+		switch (Flash_Device_Mode) {
+		case 0:	//标签
+			{
+				int32_t dis_buf = 0;
+				dis_buf =
+				    DW1000receive(Flash_Device_ID & 0x00FF);
+				if (dis_buf != 0) {
+					if (LED_FLAG > 6) {
+//                                                                                              GPIO_Toggle(LED_GPIO,LED);
+						LED_FLAG = 0;
+					} else
+						LED_FLAG++;
+				}
+			}
+			break;
+
+		case 1:	//次基站
+			{
+				if (SYS_BS_FLAG < 4) {
+					SYS_BS_TAG_FLAG =
+					    DW1000rec_dist_msg(((Flash_Device_ID
+								 >> 8) & 0xFF) +
+							       248);
+				}
+				if (SYS_BS_FLAG == 4) {
+					int32_t dis_buf = 0;
+					dis_buf =
+					    DW1000send(((Flash_Device_ID >> 8) &
+							0xFF) + 248,
+						       SYS_BS_TAG_FLAG);
+					if (dis_buf != 0) {
+						DW1000send_dist_msg_last(((Flash_Device_ID >> 8) & 0xFF) + 248, 255, dis_buf);	//发送距离
+						if (LED_FLAG > 6) {
+//                                                                                                      GPIO_Toggle(LED_GPIO,LED);
+							LED_FLAG = 0;
+						} else
+							LED_FLAG++;
+						SYS_BS_FLAG = 0;
+					}
+				}
+			}
+			break;
+
+		case 2:	//主基站
+			{
+
+				if (Flash_structure_Mode == 0)	//测距模式
 				{
-						case 0:  //标签
-						{			
-								int32_t dis_buf=0;							
-								dis_buf=DW1000receive(Flash_Device_ID&0x00FF);
-								if(dis_buf!=0)
-								{
-										if(LED_FLAG>6)
-										{
-//												GPIO_Toggle(LED_GPIO,LED);
-												LED_FLAG=0;
-										}
-										else LED_FLAG++;
-								}
-						}	
-						break;
-						
-						case 1:  //次基站
-						{								
-								if(SYS_BS_FLAG<4) 
-								{
-									SYS_BS_TAG_FLAG=DW1000rec_dist_msg(((Flash_Device_ID>>8)&0xFF)+248);
-							  }
-								if(SYS_BS_FLAG==4)
-								{
-									int32_t dis_buf=0;
-									dis_buf=DW1000send(((Flash_Device_ID>>8)&0xFF)+248,SYS_BS_TAG_FLAG);							
-									if(dis_buf!=0)
-									{
-											DW1000send_dist_msg_last(((Flash_Device_ID>>8)&0xFF)+248,255,dis_buf);	//发送距离
-										  if(LED_FLAG>6)
-											{
-//													GPIO_Toggle(LED_GPIO,LED);
-													LED_FLAG=0;
-											}
-											else LED_FLAG++;
-											SYS_BS_FLAG=0;	
-									}
-								}
-						}						
-						break;
-						
-						case 2:  //主基站
+					int8_t o = 0;
+					if ((SYS_MAJOR_BS_FLAG != 0) && (Calculate_TAG_ID != TAG_ID))	//检测过程中标签ID被修改就取消检测重新开始  防止检测过程被修改
+					{
+						SYS_MAJOR_BS_FLAG = 0;
+					}
+					if (SYS_MAJOR_BS_FLAG == 0) {
+
+						//Time_time4_Cuo_buf[SYS_MAJOR_BS_FLAG]=Time_time4_Cuo;  //测距时间戳记录-测试用
+						if (Calculate_EN == 0x01
+						    || Calculate_EN == 0x02
+						    || Calculate_EN == 0x03
+						    || Calculate_EN == 0x04) {
+							TAG_ID =
+							    Calculate_TAG_ID;
+
+							SYS_MAJOR_BS_FLAG = 1;
+							Calculate_FLAG = 0;	//状态标志为正常
+						}
+					}
+					if (SYS_MAJOR_BS_FLAG == 1)	//主基站与标签测距
+					{
+						//Time_time4_Cuo_buf[SYS_MAJOR_BS_FLAG]=Time_time4_Cuo; //测距时间戳记录-测试用
+						Calculate_FLAG = 1;	//状态标志为测距中                                               
+						SYS_dis_buf_t[0] = DW1000send(255, TAG_ID);	//填入寄存器MODBUS                                                                                                              
+						if (SYS_dis_buf_t[0] != 0) {
+							SYS_MAJOR_BS_FLAG = 2;
+
+							//deca_sleep(RNG_DELAY_MS);//休眠固定时间
+							Calculate_FLAG = 0;	//状态标志为正常
+						}
+
+					}
+					if (SYS_MAJOR_BS_FLAG == 2) {
+						dist[0] = LP(SYS_dis_buf_t[0], 0);	//LP 为低通滤波器，让数据更稳定                
+
+						Calculate_TAG_X = 0;	//赋予到寄存器
+						Calculate_TAG_Y = 0;	//赋予到寄存器
+						Calculate_TAG_Z = 0;	//赋予到寄存器               
+
+						Calculate_Station_TAG[0] = dist[0];	//赋予A基站测距值
+						for (o = 0; o < 6; o++)	//赋予B~G基站测距值
 						{
 
-							if(Flash_structure_Mode==0) //测距模式
-							{
-								int8_t o=0;
-								if((SYS_MAJOR_BS_FLAG!=0)&&(Calculate_TAG_ID != TAG_ID))//检测过程中标签ID被修改就取消检测重新开始  防止检测过程被修改
-									{
-											SYS_MAJOR_BS_FLAG=0;							
-									}
-									if(SYS_MAJOR_BS_FLAG==0)
-									{
-										
-										//Time_time4_Cuo_buf[SYS_MAJOR_BS_FLAG]=Time_time4_Cuo;  //测距时间戳记录-测试用
-											if(Calculate_EN==0x01||Calculate_EN==0x02||Calculate_EN==0x03||Calculate_EN==0x04)		
-											{
-													TAG_ID=Calculate_TAG_ID;
-																							
-													SYS_MAJOR_BS_FLAG=1;	
-													Calculate_FLAG=0;                                    //状态标志为正常
-											}										
-									}
-									if(SYS_MAJOR_BS_FLAG==1) //主基站与标签测距
-									{										   
-										//Time_time4_Cuo_buf[SYS_MAJOR_BS_FLAG]=Time_time4_Cuo; //测距时间戳记录-测试用
-										  Calculate_FLAG=1;                                    //状态标志为测距中						
-											SYS_dis_buf_t[0]=DW1000send(255,TAG_ID);		//填入寄存器MODBUS														
-											if(SYS_dis_buf_t[0]!=0)
-											{
-													SYS_MAJOR_BS_FLAG=2;
-												
-													//deca_sleep(RNG_DELAY_MS);//休眠固定时间
-												  Calculate_FLAG=0;                                    //状态标志为正常
-											}
-										
-									}		
-									if(SYS_MAJOR_BS_FLAG==2)
-									{									
-									dist[0] = LP(SYS_dis_buf_t[0],0);//LP 为低通滤波器，让数据更稳定		
-									
-										Calculate_TAG_X=0; //赋予到寄存器
-										Calculate_TAG_Y=0; //赋予到寄存器
-										Calculate_TAG_Z=0; //赋予到寄存器		
-									
-										Calculate_Station_TAG[0]=dist[0];//赋予A基站测距值
-											for(o=0;o<6;o++)   //赋予B~G基站测距值
-											{
-												
-													Calculate_Station_TAG[o+1]=0;																								
-											}									
-											
-											if(Calculate_EN==0x03||Calculate_EN==0x04)//自动输出
-											{
-												MODBUS_xyz(TAG_ID,Calculate_TAG_X,Calculate_TAG_Y,Calculate_TAG_Z,Calculate_Station_TAG);									
-											}
-											
-											if(Calculate_EN==0x01||Calculate_EN==0x03)//单次检测后清零使能
-											{												
-												Calculate_EN=0;
-											}	
-											
-												if(LED_FLAG>6)
-											{
-//													GPIO_Toggle(LED_GPIO,LED);
-													LED_FLAG=0;
-											}
-											else LED_FLAG++;
-											SYS_MAJOR_BS_FLAG=0;
-										}
-							}						
-								if(Flash_structure_Mode==1)//二维定位模式
-							 {									
-									int8_t o=0,i=0;								  
-								  if((SYS_MAJOR_BS_FLAG!=0)&&(Calculate_TAG_ID != TAG_ID))//检测过程中标签ID被修改就取消检测重新开始  防止检测过程被修改
-									{
-											SYS_MAJOR_BS_FLAG=0;													
-									}
+							Calculate_Station_TAG[o
+									      +
+									      1]
+							    = 0;
+						}
+
+						if (Calculate_EN == 0x03 || Calculate_EN == 0x04)	//自动输出
+						{
+							MODBUS_xyz(TAG_ID,
+								   Calculate_TAG_X,
+								   Calculate_TAG_Y,
+								   Calculate_TAG_Z,
+								   Calculate_Station_TAG);
+						}
+
+						if (Calculate_EN == 0x01 || Calculate_EN == 0x03)	//单次检测后清零使能
+						{
+							Calculate_EN = 0;
+						}
+
+						if (LED_FLAG > 6) {
+//                                                                                                      GPIO_Toggle(LED_GPIO,LED);
+							LED_FLAG = 0;
+						} else
+							LED_FLAG++;
+						SYS_MAJOR_BS_FLAG = 0;
+					}
+				}
+				if (Flash_structure_Mode == 1)	//二维定位模式
+				{
+					int8_t o = 0, i = 0;
+					if ((SYS_MAJOR_BS_FLAG != 0) && (Calculate_TAG_ID != TAG_ID))	//检测过程中标签ID被修改就取消检测重新开始  防止检测过程被修改
+					{
+						SYS_MAJOR_BS_FLAG = 0;
+					}
 									/*****************************************
 													         等待指令
 									*****************************************/
-									if(SYS_MAJOR_BS_FLAG==0)
-									{
-										Calculate_FLAG=0;                                    //状态标志为正常
-										Time_time4_Cuo_buf[SYS_MAJOR_BS_FLAG]=Time_time4_Cuo;//测距时间戳记录-测试用
-											if(Calculate_EN==0x01||Calculate_EN==0x02||Calculate_EN==0x03||Calculate_EN==0x04)		
-											{
-													TAG_ID=Calculate_TAG_ID;
-													Calculate_FLAG=1;												
-													SYS_MAJOR_BS_FLAG=1;			
-													ERROR_FLAG=0;                                      //错误标志为归0
-											}										
-									}
+					if (SYS_MAJOR_BS_FLAG == 0) {
+						Calculate_FLAG = 0;	//状态标志为正常
+						Time_time4_Cuo_buf[SYS_MAJOR_BS_FLAG] = Time_time4_Cuo;	//测距时间戳记录-测试用
+						if (Calculate_EN == 0x01
+						    || Calculate_EN == 0x02
+						    || Calculate_EN == 0x03
+						    || Calculate_EN == 0x04) {
+							TAG_ID =
+							    Calculate_TAG_ID;
+							Calculate_FLAG = 1;
+							SYS_MAJOR_BS_FLAG = 1;
+							ERROR_FLAG = 0;	//错误标志为归0
+						}
+					}
 									/*****************************************
 													开始定位，主基站与标签测距
 									*****************************************/
-									if(SYS_MAJOR_BS_FLAG==1) //主基站与标签测距
-									{
-										  Calculate_FLAG=1;                                //状态标志为A基站检测中
-										Time_time4_Cuo_buf[SYS_MAJOR_BS_FLAG]=Time_time4_Cuo;//测距时间戳记录-测试用
-											SYS_dis_buf_t[0]=DW1000send(255,TAG_ID);		//填入寄存器MODBUS																		
-											if(SYS_dis_buf_t[0]!=0)
-											{
-													SYS_MAJOR_BS_FLAG=2;											
-													//deca_sleep(RNG_DELAY_MS);//休眠固定时间
-													ERROR_FLAG=0;                                      //错误标志为归0
-											}		
-																		
-									}					
+					if (SYS_MAJOR_BS_FLAG == 1)	//主基站与标签测距
+					{
+						Calculate_FLAG = 1;	//状态标志为A基站检测中
+						Time_time4_Cuo_buf[SYS_MAJOR_BS_FLAG] = Time_time4_Cuo;	//测距时间戳记录-测试用
+						SYS_dis_buf_t[0] = DW1000send(255, TAG_ID);	//填入寄存器MODBUS                                                                                                                                              
+						if (SYS_dis_buf_t[0] != 0) {
+							SYS_MAJOR_BS_FLAG = 2;
+							//deca_sleep(RNG_DELAY_MS);//休眠固定时间
+							ERROR_FLAG = 0;	//错误标志为归0
+						}
+
+					}
 									/*****************************************
 													 次基站与标签测距依次进行
 									*****************************************/
-									for(i=0;i<6;i++) //次基站与标签测距 
-								  {
-											if(SYS_MAJOR_BS_FLAG==2+i) //次基站与标签测距
-											{														
-												   Calculate_FLAG=2+i;                  //状态标志为次基站
-												Time_time4_Cuo_buf[SYS_MAJOR_BS_FLAG]=Time_time4_Cuo;//测距时间戳记录-测试用
-												  if(Flash_BS_EN_X_Y_Z[i][0]==1)
-													{																										
-															SYS_dis_buf_t[1+i]=DW1000send_dist_msg(255,248+i,TAG_ID);
-															if(SYS_dis_buf_t[1+i]!=0)
-															{
-																	SYS_MAJOR_BS_FLAG++;															
-															    //deca_sleep(RNG_DELAY_MS);//休眠固定时间
-																	ERROR_FLAG=0;                                      //错误标志为归0
-															}																						
-													}
-													else
-													{
-															SYS_MAJOR_BS_FLAG++;
-													}
-													
-											}
-											
-									}								
+					for (i = 0; i < 6; i++)	//次基站与标签测距 
+					{
+						if (SYS_MAJOR_BS_FLAG == 2 + i)	//次基站与标签测距
+						{
+							Calculate_FLAG = 2 + i;	//状态标志为次基站
+							Time_time4_Cuo_buf[SYS_MAJOR_BS_FLAG] = Time_time4_Cuo;	//测距时间戳记录-测试用
+							if (Flash_BS_EN_X_Y_Z[i]
+							    [0] == 1) {
+								SYS_dis_buf_t[1
+									      +
+									      i]
+								    =
+								    DW1000send_dist_msg
+								    (255,
+								     248 + i,
+								     TAG_ID);
+								if (SYS_dis_buf_t[1 + i] != 0) {
+									SYS_MAJOR_BS_FLAG++;
+									//deca_sleep(RNG_DELAY_MS);//休眠固定时间
+									ERROR_FLAG = 0;	//错误标志为归0
+								}
+							} else {
+								SYS_MAJOR_BS_FLAG++;
+							}
+
+						}
+
+					}
 									/*****************************************
 													   测距结束，处理数据并输出
 									*****************************************/
-						      if(SYS_MAJOR_BS_FLAG==8)
-									{
-										  double clua_x_y[2];
-										  uint8 i;
-										  uint8 cla_flag=0;
-											Time_time4_Cuo_buf[SYS_MAJOR_BS_FLAG]=Time_time4_Cuo;//测距时间戳记录-测试用
-									    
-											for(i=0;i<7;i++)
-											{											
-													dist[i] = LP(SYS_dis_buf_t[i],i+7*TAG_ID);//LP 为低通滤波器，让数据更稳定		
-											}
-									
-											cla_flag=PersonPosition(Flash_MAJOR_BS_X_Y_Z[0],Flash_MAJOR_BS_X_Y_Z[1],dist[0],
-																		 Flash_BS_EN_X_Y_Z[0][1],Flash_BS_EN_X_Y_Z[0][2],dist[1],Flash_BS_EN_X_Y_Z[0][0],
-																		 Flash_BS_EN_X_Y_Z[1][1],Flash_BS_EN_X_Y_Z[1][2],dist[2],Flash_BS_EN_X_Y_Z[1][0],
-																		 Flash_BS_EN_X_Y_Z[2][1],Flash_BS_EN_X_Y_Z[2][2],dist[3],Flash_BS_EN_X_Y_Z[2][0],
-																		 Flash_BS_EN_X_Y_Z[3][1],Flash_BS_EN_X_Y_Z[3][2],dist[4],Flash_BS_EN_X_Y_Z[3][0],
-																		 Flash_BS_EN_X_Y_Z[4][1],Flash_BS_EN_X_Y_Z[4][2],dist[5],Flash_BS_EN_X_Y_Z[4][0],
-																		 Flash_BS_EN_X_Y_Z[5][1],Flash_BS_EN_X_Y_Z[5][2],dist[6],Flash_BS_EN_X_Y_Z[5][0],
-																			clua_x_y);
-											
-										 if(cla_flag!=0) 
-										  {
-												  
-													Calculate_FLAG=8;                               //状态显示计算错误
-													Calculate_TAG_X=0; //赋予到寄存器
-													Calculate_TAG_Y=0; //赋予到寄存器
-													Calculate_TAG_Z=0; //赋予到寄存器			
-										  }
-										 else
-											 
-											{
-												 Calculate_FLAG=0;
-												 clua_x_y[0] = KalmanFilter(clua_x_y[0],KALMAN_Q,KALMAN_R,0+2*TAG_ID);    //卡尔曼滤波
-												 clua_x_y[1] = KalmanFilter(clua_x_y[1],KALMAN_Q,KALMAN_R,1+2*TAG_ID);		//卡尔曼滤波
-												 Calculate_TAG_X=(int)(clua_x_y[0]); //赋予到寄存器
-												 Calculate_TAG_Y=(int)(clua_x_y[1]); //赋予到寄存器
-												 Calculate_TAG_Z=0; //赋予到寄存器											
-											}
-										
-											/******************************///赋予值
-											
-											Calculate_Station_TAG[0]=dist[0];
-											for(o=0;o<6;o++)   //赋予到寄存器
-											{
-												
-													if(Flash_BS_EN_X_Y_Z[o][0]==1) Calculate_Station_TAG[o+1]=dist[o+1];
-												
-													else Calculate_Station_TAG[o+1]=0;
-													
-											}								
+					if (SYS_MAJOR_BS_FLAG == 8) {
+						double clua_x_y[2];
+						uint8 i;
+						uint8 cla_flag = 0;
+						Time_time4_Cuo_buf[SYS_MAJOR_BS_FLAG] = Time_time4_Cuo;	//测距时间戳记录-测试用
+
+						for (i = 0; i < 7; i++) {
+							dist[i] = LP(SYS_dis_buf_t[i], i + 7 * TAG_ID);	//LP 为低通滤波器，让数据更稳定               
+						}
+
+						cla_flag =
+						    PersonPosition
+						    (Flash_MAJOR_BS_X_Y_Z[0],
+						     Flash_MAJOR_BS_X_Y_Z[1],
+						     dist[0],
+						     Flash_BS_EN_X_Y_Z[0][1],
+						     Flash_BS_EN_X_Y_Z[0][2],
+						     dist[1],
+						     Flash_BS_EN_X_Y_Z[0][0],
+						     Flash_BS_EN_X_Y_Z[1][1],
+						     Flash_BS_EN_X_Y_Z[1][2],
+						     dist[2],
+						     Flash_BS_EN_X_Y_Z[1][0],
+						     Flash_BS_EN_X_Y_Z[2][1],
+						     Flash_BS_EN_X_Y_Z[2][2],
+						     dist[3],
+						     Flash_BS_EN_X_Y_Z[2][0],
+						     Flash_BS_EN_X_Y_Z[3][1],
+						     Flash_BS_EN_X_Y_Z[3][2],
+						     dist[4],
+						     Flash_BS_EN_X_Y_Z[3][0],
+						     Flash_BS_EN_X_Y_Z[4][1],
+						     Flash_BS_EN_X_Y_Z[4][2],
+						     dist[5],
+						     Flash_BS_EN_X_Y_Z[4][0],
+						     Flash_BS_EN_X_Y_Z[5][1],
+						     Flash_BS_EN_X_Y_Z[5][2],
+						     dist[6],
+						     Flash_BS_EN_X_Y_Z[5][0],
+						     clua_x_y);
+
+						if (cla_flag != 0) {
+
+							Calculate_FLAG = 8;	//状态显示计算错误
+							Calculate_TAG_X = 0;	//赋予到寄存器
+							Calculate_TAG_Y = 0;	//赋予到寄存器
+							Calculate_TAG_Z = 0;	//赋予到寄存器                       
+						} else
+						{
+							Calculate_FLAG = 0;
+							clua_x_y[0] = KalmanFilter(clua_x_y[0], KALMAN_Q, KALMAN_R, 0 + 2 * TAG_ID);	//卡尔曼滤波
+							clua_x_y[1] = KalmanFilter(clua_x_y[1], KALMAN_Q, KALMAN_R, 1 + 2 * TAG_ID);	//卡尔曼滤波
+							Calculate_TAG_X = (int) (clua_x_y[0]);	//赋予到寄存器
+							Calculate_TAG_Y = (int) (clua_x_y[1]);	//赋予到寄存器
+							Calculate_TAG_Z = 0;	//赋予到寄存器                                                                                      
+						}
+
+						/******************************///赋予值
+
+						Calculate_Station_TAG[0] =
+						    dist[0];
+						for (o = 0; o < 6; o++)	//赋予到寄存器
+						{
+
+							if (Flash_BS_EN_X_Y_Z[o]
+							    [0] == 1)
+								Calculate_Station_TAG
+								    [o + 1] =
+								    dist[o + 1];
+
+							else
+								Calculate_Station_TAG
+								    [o + 1] = 0;
+
+						}
 											/******************************/
-												if(Calculate_EN==0x03||Calculate_EN==0x04)//自动输出
-											{
-												MODBUS_xyz(TAG_ID,Calculate_TAG_X,Calculate_TAG_Y,Calculate_TAG_Z,Calculate_Station_TAG);									
+						if (Calculate_EN == 0x03 || Calculate_EN == 0x04)	//自动输出
+						{
+							MODBUS_xyz(TAG_ID,
+								   Calculate_TAG_X,
+								   Calculate_TAG_Y,
+								   Calculate_TAG_Z,
+								   Calculate_Station_TAG);
 
-											}
-											if(Calculate_EN==0x01||Calculate_EN==0x03)//单次检测后清零使能
-											{												
-												Calculate_EN=0;
-											}
-										
-											if(LED_FLAG>6)
-											{
-		//											GPIO_Toggle(LED_GPIO,LED);
-													LED_FLAG=0;
-											}
-											else LED_FLAG++;
-											SYS_MAJOR_BS_FLAG=0;
+						}
+						if (Calculate_EN == 0x01 || Calculate_EN == 0x03)	//单次检测后清零使能
+						{
+							Calculate_EN = 0;
+						}
 
-											
-											Time_time4_Cuo_buf[9]=Time_time4_Cuo;				
-											/*											
-											{
-												uint8 lkj;
-												for(lkj=0;lkj<10;lkj++)
-												{
-													printf("buf[%d]time: %d \n",lkj,Time_time4_Cuo_buf[lkj]); 
-												}
-											
-											}
-											*/
-											
-									}			
+						if (LED_FLAG > 6) {
+							//                                                                                      GPIO_Toggle(LED_GPIO,LED);
+							LED_FLAG = 0;
+						} else
+							LED_FLAG++;
+						SYS_MAJOR_BS_FLAG = 0;
 
-									if(ERROR_FLAG>1000)   //测距发生错误
-									{				
-										
-										if(Calculate_EN==0x03||Calculate_EN==0x04)//自动输出
-											{
-												MODBUS_xyz(TAG_ID,Calculate_TAG_X,Calculate_TAG_Y,Calculate_TAG_Z,Calculate_Station_TAG);									
-											}
-											if(Calculate_EN==0x01||Calculate_EN==0x03)//单次检测后清零使能
-											{												
-												Calculate_EN=0;
-											}
-										SYS_Calculate_ACTIVE_FLAG=0;
-										SYS_BS_MESSAGE_FLAG=0; //				
-									  SYS_MAJOR_BS_FLAG=0; //程序标志位归位							
-										ERROR_FLAG=0;        //错误标志归0
-										
-									}
-									
-									
-						   
-							}		
+						Time_time4_Cuo_buf[9] =
+						    Time_time4_Cuo;
+						/*                                                                                      
+						   {
+						   uint8 lkj;
+						   for(lkj=0;lkj<10;lkj++)
+						   {
+						   printf("buf[%d]time: %d \n",lkj,Time_time4_Cuo_buf[lkj]); 
+						   }
+
+						   }
+						 */
 
 					}
-			}								
+
+					if (ERROR_FLAG > 1000)	//测距发生错误
+					{
+
+						if (Calculate_EN == 0x03 || Calculate_EN == 0x04)	//自动输出
+						{
+							MODBUS_xyz(TAG_ID,
+								   Calculate_TAG_X,
+								   Calculate_TAG_Y,
+								   Calculate_TAG_Z,
+								   Calculate_Station_TAG);
+						}
+						if (Calculate_EN == 0x01 || Calculate_EN == 0x03)	//单次检测后清零使能
+						{
+							Calculate_EN = 0;
+						}
+						SYS_Calculate_ACTIVE_FLAG = 0;
+						SYS_BS_MESSAGE_FLAG = 0;	//                               
+						SYS_MAJOR_BS_FLAG = 0;	//程序标志位归位                                                 
+						ERROR_FLAG = 0;	//错误标志归0
+
+					}
+
+				}
+
+			}
 		}
-		
-		
+	}
+
 	return 0;
-		
+
 }
 
 /*! ------------------------------------------------------------------------------------------------------------------
@@ -977,18 +975,18 @@ int dw_main(void)
  *
  * @return  64-bit value of the read time-stamp.
  */
-static uint64 get_tx_timestamp_u64(void)
+static uint64
+get_tx_timestamp_u64(void)
 {
-    uint8 ts_tab[5];
-    uint64 ts = 0;
-    int i;
-    dwt_readtxtimestamp(ts_tab);
-    for (i = 4; i >= 0; i--)
-    {
-        ts <<= 8;
-        ts |= ts_tab[i];
-    }
-    return ts;
+	uint8 ts_tab[5];
+	uint64 ts = 0;
+	int i;
+	dwt_readtxtimestamp(ts_tab);
+	for (i = 4; i >= 0; i--) {
+		ts <<= 8;
+		ts |= ts_tab[i];
+	}
+	return ts;
 }
 
 /*! ------------------------------------------------------------------------------------------------------------------
@@ -1001,18 +999,18 @@ static uint64 get_tx_timestamp_u64(void)
  *
  * @return  64-bit value of the read time-stamp.
  */
-static uint64 get_rx_timestamp_u64(void)
+static uint64
+get_rx_timestamp_u64(void)
 {
-    uint8 ts_tab[5];
-    uint64 ts = 0;
-    int i;
-    dwt_readrxtimestamp(ts_tab);
-    for (i = 4; i >= 0; i--)
-    {
-        ts <<= 8;
-        ts |= ts_tab[i];
-    }
-    return ts;
+	uint8 ts_tab[5];
+	uint64 ts = 0;
+	int i;
+	dwt_readrxtimestamp(ts_tab);
+	for (i = 4; i >= 0; i--) {
+		ts <<= 8;
+		ts |= ts_tab[i];
+	}
+	return ts;
 }
 
 /*! ------------------------------------------------------------------------------------------------------------------
@@ -1026,24 +1024,26 @@ static uint64 get_rx_timestamp_u64(void)
  *
  * @return none
  */
-static void final_msg_set_ts(uint8 *ts_field, uint64 ts)
+static void
+final_msg_set_ts(uint8 * ts_field, uint64 ts)
 {
-    int i;
-    for (i = 0; i < FINAL_MSG_TS_LEN; i++)
-    {
-        ts_field[i] = (uint8) ts;
-        ts >>= 8;
-    }
+	int i;
+	for (i = 0; i < FINAL_MSG_TS_LEN; i++) {
+		ts_field[i] = (uint8) ts;
+		ts >>= 8;
+	}
 }
-static void final_msg_set_dist(uint8 *ts_field, uint32 dist)
+
+static void
+final_msg_set_dist(uint8 * ts_field, uint32 dist)
 {
-    int i;
-    for (i = 0; i < 4; i++)
-    {
-        ts_field[i] = (uint8) dist;
-        dist >>= 8;
-    }
+	int i;
+	for (i = 0; i < 4; i++) {
+		ts_field[i] = (uint8) dist;
+		dist >>= 8;
+	}
 }
+
 /*****************************************************************************************************************************************************
  * NOTES:
  *
