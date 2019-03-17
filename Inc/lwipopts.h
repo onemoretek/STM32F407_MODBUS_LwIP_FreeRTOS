@@ -107,7 +107,7 @@
 #define CHECKSUM_CHECK_ICMP6 0
 /*-----------------------------------------------------------------------------*/
 /* USER CODE BEGIN 1 */
-#define USE_STATIC_IP_ADDR  1
+//#define USE_STATIC_IP_ADDR  1
 
 #ifndef USE_STATIC_IP_ADDR
 #define LWIP_UDP        1
