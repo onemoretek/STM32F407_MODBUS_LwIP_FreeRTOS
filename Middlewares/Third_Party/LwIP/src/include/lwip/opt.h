@@ -857,7 +857,7 @@
  * netif_set_link_up() must be called to continue dhcp starting.
  */
 #if !defined LWIP_DHCP_CHECK_LINK_UP
-#define LWIP_DHCP_CHECK_LINK_UP         0
+#define LWIP_DHCP_CHECK_LINK_UP         1
 #endif
 
 /**
