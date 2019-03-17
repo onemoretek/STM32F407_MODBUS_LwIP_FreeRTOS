@@ -83,7 +83,9 @@ osThreadId defaultTaskHandle;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
-void MyDhcpTask(void const * argument);   
+void MyDhcpTask(void const * argument);
+void MyDhcpTaskCreate(void);
+void MyDhcpTaskDestroy(void);
 /* USER CODE END FunctionPrototypes */
 
 void StartDefaultTask(void const * argument);
@@ -127,8 +129,7 @@ void MX_FREERTOS_Init(void) {
   
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
-  osThreadDef(myDhcpTask, MyDhcpTask, osPriorityNormal, 0, 200);
-  myDhcpTaskHandle = osThreadCreate(osThread(myDhcpTask), NULL); 
+  MyDhcpTaskCreate();
   /* USER CODE END RTOS_THREADS */
 
 }
@@ -163,11 +164,22 @@ void StartDefaultTask(void const * argument)
 /* USER CODE BEGIN Application */
 void MyDhcpTask(void const * argument) 
 {
-    for (;;) {
-        vTaskDelay(1000);
-        lwip_dhcp_task(NULL);    
-    }
-}     
+  for (;;) {
+    lwip_dhcp_task(NULL); 
+    vTaskDelay(10);
+  }
+}
+
+void MyDhcpTaskCreate(void) 
+{
+  osThreadDef(myDhcpTask, MyDhcpTask, osPriorityNormal, 0, 200);
+  myDhcpTaskHandle = osThreadCreate(osThread(myDhcpTask), NULL); 
+}
+
+void MyDhcpTaskDestroy(void) 
+{
+  osThreadTerminate(myDhcpTaskHandle);
+}
 /* USER CODE END Application */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

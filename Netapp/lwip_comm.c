@@ -178,6 +178,7 @@ u8 lwip_comm_init(void)
 //创建DHCP任务
 void lwip_comm_dhcp_creat(void)
 {
+    
 #if 0
 	OS_CPU_SR cpu_sr;
 	OS_ENTER_CRITICAL();  //进入临界区
@@ -193,12 +194,34 @@ void lwip_comm_dhcp_delete(void)
 	OSTaskDel(LWIP_DHCP_TASK_PRIO);	//删除DHCP任务
 #endif
 }
+
+extern void MyDhcpTaskDestroy(void);
+extern struct netif gnetif;
+
 void lwip_dhcp_task(void *pdata)
 {
-    for (;;) {
-        vTaskDelay(1000);
-        printf("lwip_dhcp_task\r\n");   
-    }   
+  u32 ip = 0;
+  u32 msk = 0;
+  u32 gw = 0;
+
+  while (1) {
+    ip = gnetif.ip_addr.addr; 
+    msk = gnetif.netmask.addr;
+    gw = lwip_netif.gw.addr;
+
+    printf("dhcp is ongoing...\r\n");   
+    if (ip != 0) {
+      printf("ip :%d.%d.%d.%d\r\n", 
+        ip&0xff, (ip>>8)&0xff, (ip>>16)&0xff, (ip>>24)&0xff); 
+      printf("msk:%d.%d.%d.%d\r\n", 
+        msk&0xff, (msk>>8)&0xff, (msk>>16)&0xff, (msk>>24)&0xff); 
+      printf("gw :%d.%d.%d.%d\r\n", 
+        gw&0xff, (gw>>8)&0xff, (gw>>16)&0xff, (gw>>24)&0xff);
+      
+      MyDhcpTaskDestroy();
+      break;
+    }
+  }
 }
 #if 0
 //DHCP处理任务

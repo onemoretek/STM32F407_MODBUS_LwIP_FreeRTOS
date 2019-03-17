@@ -88,12 +88,15 @@ void MX_LWIP_Init(void)
 
   if (netif_is_link_up(&gnetif))
   {
+    printf("netif_is_link_up=======================================\r\n");
     /* When the netif is fully configured this function must be called */
     netif_set_up(&gnetif);
+    dhcp_start(&gnetif);
   }
   else
   {
     /* When the netif link is down this function must be called */
+    printf("netif_is_link_down=======================================\r\n");
     netif_set_down(&gnetif);
   }
 
