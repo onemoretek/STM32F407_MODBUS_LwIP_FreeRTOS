@@ -119,18 +119,16 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
   /* USER CODE END RTOS_QUEUES */
-  osThreadDef(myDhcpTask, MyDhcpTask, osPriorityNormal, 0, 200);
-  myDhcpTaskHandle = osThreadCreate(osThread(myDhcpTask), NULL);
   
-#if 1
   /* Create the thread(s) */
   /* definition and creation of defaultTask */
   osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 200);
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
-#endif
+  
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
-
+  osThreadDef(myDhcpTask, MyDhcpTask, osPriorityNormal, 0, 200);
+  myDhcpTaskHandle = osThreadCreate(osThread(myDhcpTask), NULL); 
   /* USER CODE END RTOS_THREADS */
 
 }
@@ -148,19 +146,15 @@ void StartDefaultTask(void const * argument)
   MX_LWIP_Init();
     
   udp_client_init();
-
-#if 0
-  osThreadDef(myDhcpTask, MyDhcpTask, osPriorityHigh, 0, 400);
-  myDhcpTaskHandle = osThreadCreate(osThread(myDhcpTask), NULL);
-#endif
+  
   //lwip_dhcp_task(NULL); 
 
   /* USER CODE BEGIN StartDefaultTask */
   /* Infinite loop */
   for(;;)
   {
-		dw_main();
-    vTaskDelay(1000);
+	dw_main();
+    vTaskDelay(10);
   }
   /* USER CODE END StartDefaultTask */
 }
