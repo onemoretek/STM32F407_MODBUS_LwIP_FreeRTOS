@@ -21,18 +21,123 @@
 #include "string.h"
 
 /* 定义端口号 */
-#define UDP_REMOTE_PORT    8881 /* 远端端口 */
-#define UDP_LOCAL_PORT     8880 /* 本地端口 */
+#define UDP_REMOTE_PORT    9000 /* 远端端口 */
+#define UDP_LOCAL_PORT     900 /* 本地端口 */
+
+#define UDP_DISC_PORT_LOCAL     9100
+#define UDP_DISC_PORT_REMOTE    9100
+
+#define UDP_MODBUS_PORT_LOCAL   9101
+#define UDP_MODBUS_PORT_REMOTE  9101
+
+unsigned char remote_host_master_addr[4] = {192, 168, 1, 7};
+unsigned char remote_host_backup_addr[4] = {192, 168, 1, 1};
+unsigned int remote_host_master_connected = 0;
 
 /* udp控制块 */
-static struct udp_pcb *upcb;
+static struct udp_pcb *disc_upcb;
+static struct udp_pcb *modbus_upcb;
 
 /******************************************************************************
  * 描述  : 接收回调函数
  * 参数  : -
  * 返回  : 无
 ******************************************************************************/
-static void udp_receive_callback(void *arg, struct udp_pcb *upcb,
+static void udp_disc_receive_callback(void *arg, struct udp_pcb *upcb,
+    struct pbuf *p, const ip_addr_t *addr, u16_t port);
+
+static void udp_modbus_receive_callback(void *arg, struct udp_pcb *upcb,
+    struct pbuf *p, const ip_addr_t *addr, u16_t port);
+
+/******************************************************************************
+ * 描述  : 发送udp数据
+ * 参数  : (in)pData 发送数据的指针
+ * 返回  : 无
+******************************************************************************/
+void udp_disc_client_send(char *pData);
+
+/******************************************************************************
+ * 描述  : 创建udp客户端
+ * 参数  : 无
+ * 返回  : 无
+******************************************************************************/
+void udp_disc_client_init(void);
+
+/******************************************************************************
+ * 描述  : 发送udp数据
+ * 参数  : (in)pData 发送数据的指针
+ * 返回  : 无
+******************************************************************************/
+void udp_modbus_client_send(char *pData);
+
+/******************************************************************************
+ * 描述  : 创建udp客户端
+ * 参数  : 无
+ * 返回  : 无
+******************************************************************************/
+int udp_modbus_client_init(void);
+
+/******************************************************************************
+ * 描述  : 创建udp客户端
+ * 参数  : 无
+ * 返回  : 无
+******************************************************************************/
+
+static void udp_disc_receive_callback(void *arg, struct udp_pcb *upcb,
+    struct pbuf *p, const ip_addr_t *addr, u16_t port)
+{    
+    /* 数据回传 */
+//    udp_send(upcb, p);
+//    udp_sendto(upcb, p, addr, port);
+    
+    /* 打印接收到的数据 */
+    printf("get disc msg from %d:%d:%d:%d port:%d:\r\n",
+        *((uint8_t *)&addr->addr), *((uint8_t *)&addr->addr + 1),
+        *((uint8_t *)&addr->addr + 2), *((uint8_t *)&addr->addr + 3), port);
+
+    // We will add code to report my state, configuration
+    udp_sendto(disc_upcb, p, addr, port);    
+
+    if (remote_host_master_connected == 1 
+      && remote_host_master_addr[0] == *((uint8_t *)&addr->addr)
+      && remote_host_master_addr[1] == *((uint8_t *)&addr->addr + 1)
+      && remote_host_master_addr[2] == *((uint8_t *)&addr->addr + 2)
+      && remote_host_master_addr[3] == *((uint8_t *)&addr->addr + 3)) {
+      // Report the client state
+      remote_host_master_connected = 1;
+      printf("Send only\r\n");
+      udp_modbus_client_send("This is a UWB client");
+    } else {
+      remote_host_master_addr[0] = *((uint8_t *)&addr->addr);
+      remote_host_master_addr[1] = *((uint8_t *)&addr->addr + 1);
+      remote_host_master_addr[2] = *((uint8_t *)&addr->addr + 2);
+      remote_host_master_addr[3] = *((uint8_t *)&addr->addr + 3);
+      if (ERR_OK == udp_modbus_client_init()) {
+        // Report the client state
+        remote_host_master_connected = 1;
+        printf("Send and create udp socke\r\n");
+        udp_modbus_client_send("This is a UWB client");
+      } else {
+        remote_host_master_connected = 0;
+      }
+    }
+
+    // Now we have get the host ip addres, it's time to report my configuraiton 
+    // and ability
+    // We need check the state, if the server was not changed and the client 
+    // Have connected to server not need connect agagin
+    
+    if (ERR_OK == udp_modbus_client_init()) {
+      // Report the client state
+      remote_host_master_connected = 1;
+      udp_modbus_client_send("This is a UWB client");
+    }
+    
+    /* 释放缓冲区数据 */
+    pbuf_free(p);
+}
+
+static void udp_modbus_receive_callback(void *arg, struct udp_pcb *upcb,
     struct pbuf *p, const ip_addr_t *addr, u16_t port)
 {
     uint32_t i;
@@ -42,7 +147,7 @@ static void udp_receive_callback(void *arg, struct udp_pcb *upcb,
 //    udp_sendto(upcb, p, addr, port);
     
     /* 打印接收到的数据 */
-    printf("get msg from %d:%d:%d:%d port:%d:\r\n",
+    printf("get modbus msg from %d:%d:%d:%d port:%d:\r\n",
         *((uint8_t *)&addr->addr), *((uint8_t *)&addr->addr + 1),
         *((uint8_t *)&addr->addr + 2), *((uint8_t *)&addr->addr + 3), port);
     
@@ -54,7 +159,7 @@ static void udp_receive_callback(void *arg, struct udp_pcb *upcb,
         {
             for (i = 0; i < p->len; i++)
             {
-                printf("%c", *((char *)p->payload + i));
+                printf("%x", *((char *)p->payload + i));
             }
             
             ptmp = p->next;
@@ -72,7 +177,7 @@ static void udp_receive_callback(void *arg, struct udp_pcb *upcb,
  * 参数  : (in)pData 发送数据的指针
  * 返回  : 无
 ******************************************************************************/
-void udp_client_send(char *pData)
+void udp_disc_client_send(char *pData)
 {
     struct pbuf *p;
     
@@ -85,7 +190,7 @@ void udp_client_send(char *pData)
         pbuf_take(p, pData, strlen(pData));
 
         /* 发送udp数据 */
-        udp_send(upcb, p);
+        udp_send(disc_upcb, p);
 
         /* 释放缓冲区空间 */
         pbuf_free(p);
@@ -97,41 +202,120 @@ void udp_client_send(char *pData)
  * 参数  : 无
  * 返回  : 无
 ******************************************************************************/
-void udp_client_init(void)
+void udp_disc_client_init(void)
 {
-    ip_addr_t serverIP;
+    ip_addr_t discServerIP;
     err_t err;
-
-    IP4_ADDR(&serverIP, 192, 168, 2, 194);
-
+    
+    ip4_addr_set_any(&discServerIP);
+    
     /* 创建udp控制块 */
-    upcb = udp_new();
+    disc_upcb = udp_new();
 
-    if (upcb!=NULL)
+    if (disc_upcb!=NULL)
     {
         /* 配置本地端口 */
-        upcb->local_port = UDP_LOCAL_PORT;
+        disc_upcb->local_port = UDP_DISC_PORT_LOCAL;
         
         /* 配置服务器IP和端口 */
-        err= udp_connect(upcb, &serverIP, UDP_REMOTE_PORT);
+        err = udp_connect(disc_upcb, &discServerIP, UDP_DISC_PORT_REMOTE);
 
         if (err == ERR_OK)
         {
             /* 注册接收回调函数 */
-            udp_recv(upcb, udp_receive_callback, NULL);
+            udp_recv(disc_upcb, udp_disc_receive_callback, NULL);
             
             /* 发送udp数据 */
-            udp_client_send("udp client connected");
+            udp_disc_client_send("udp client connected");
             
             printf("udp client connected\r\n");
         }
         else
         {
-            udp_remove(upcb);
+            udp_remove(disc_upcb);
             
             printf("can not connect udp pcb\r\n");
         }
     }
+}
+
+/******************************************************************************
+ * 描述  : 发送udp数据
+ * 参数  : (in)pData 发送数据的指针
+ * 返回  : 无
+******************************************************************************/
+void udp_modbus_client_send(char *pData)
+{
+    struct pbuf *p;
+    
+    /* 分配缓冲区空间 */
+    p = pbuf_alloc(PBUF_TRANSPORT, strlen(pData), PBUF_POOL);
+    
+    if (p != NULL)
+    {
+        /* 填充缓冲区数据 */
+        pbuf_take(p, pData, strlen(pData));
+
+        /* 发送udp数据 */
+        udp_send(modbus_upcb, p);
+
+        /* 释放缓冲区空间 */
+        pbuf_free(p);
+    }
+}
+
+/******************************************************************************
+ * 描述  : 创建udp客户端
+ * 参数  : 无
+ * 返回  : 无
+******************************************************************************/
+/******************************************************************************
+ * 描述  : 创建udp客户端
+ * 参数  : 无
+ * 返回  : 无
+******************************************************************************/
+int udp_modbus_client_init(void)
+{
+    ip_addr_t modbusServerIP;
+    err_t err;
+
+    IP4_ADDR(&modbusServerIP, remote_host_master_addr[0],
+                              remote_host_master_addr[1],
+                              remote_host_master_addr[2],
+                              remote_host_master_addr[3]);
+
+    /* 创建udp控制块 */
+    modbus_upcb = udp_new();
+
+    if (modbus_upcb!=NULL)
+    {
+        /* 配置本地端口 */
+        modbus_upcb->local_port = UDP_MODBUS_PORT_LOCAL;
+        
+        /* 配置服务器IP和端口 */
+        err= udp_connect(modbus_upcb, &modbusServerIP, UDP_MODBUS_PORT_REMOTE);
+
+        if (err == ERR_OK)
+        {
+            /* 注册接收回调函数 */
+            udp_recv(modbus_upcb, udp_modbus_receive_callback, NULL);
+            
+            /* 发送udp数据 */
+            //udp_modbus_client_send("udp client connected");
+            
+            printf("udp client connected\r\n");
+        }
+        else
+        {
+            udp_remove(modbus_upcb);
+            
+            printf("can not connect udp pcb\r\n");
+        }
+    } else {
+      err = -1;
+    }
+
+    return err;
 }
 
 /******************************** END OF FILE ********************************/
