@@ -71,18 +71,19 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-
+//#define dhcpTask   "DhcpTask"
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
+osThreadId myDhcpTaskHandle;
 
 /* USER CODE END Variables */
 osThreadId defaultTaskHandle;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
-   
+void MyDhcpTask(void const * argument);   
 /* USER CODE END FunctionPrototypes */
 
 void StartDefaultTask(void const * argument);
@@ -91,6 +92,7 @@ extern void MX_LWIP_Init(void);
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
 extern void udp_client_init(void);
+void lwip_dhcp_task(void *pdata);
 
 /**
   * @brief  FreeRTOS initialization
@@ -117,14 +119,18 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
   /* USER CODE END RTOS_QUEUES */
-
+  osThreadDef(myDhcpTask, MyDhcpTask, osPriorityNormal, 0, 200);
+  myDhcpTaskHandle = osThreadCreate(osThread(myDhcpTask), NULL);
+  
+#if 1
   /* Create the thread(s) */
   /* definition and creation of defaultTask */
-  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 2048);
+  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 200);
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
-
+#endif
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
+
   /* USER CODE END RTOS_THREADS */
 
 }
@@ -140,22 +146,34 @@ void StartDefaultTask(void const * argument)
 {
   /* init code for LWIP */
   MX_LWIP_Init();
-
+    
   udp_client_init();
+
+#if 0
+  osThreadDef(myDhcpTask, MyDhcpTask, osPriorityHigh, 0, 400);
+  myDhcpTaskHandle = osThreadCreate(osThread(myDhcpTask), NULL);
+#endif
+  //lwip_dhcp_task(NULL); 
 
   /* USER CODE BEGIN StartDefaultTask */
   /* Infinite loop */
   for(;;)
   {
 		dw_main();
-//    osDelay(1);
+    vTaskDelay(1000);
   }
   /* USER CODE END StartDefaultTask */
 }
 
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
-     
+void MyDhcpTask(void const * argument) 
+{
+    for (;;) {
+        vTaskDelay(1000);
+        lwip_dhcp_task(NULL);    
+    }
+}     
 /* USER CODE END Application */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

@@ -193,12 +193,21 @@ void lwip_comm_dhcp_delete(void)
 	OSTaskDel(LWIP_DHCP_TASK_PRIO);	//删除DHCP任务
 #endif
 }
+void lwip_dhcp_task(void *pdata)
+{
+    for (;;) {
+        vTaskDelay(1000);
+        printf("lwip_dhcp_task\r\n");   
+    }   
+}
+#if 0
 //DHCP处理任务
 void lwip_dhcp_task(void *pdata)
 {
 	u32 ip=0,netmask=0,gw=0;
 	dhcp_start(&lwip_netif);//开启DHCP 
 	lwipdev.dhcpstatus=0;	//正在DHCP
+	while (1)
 	printf("正在查找DHCP服务器,请稍等...........\r\n");   
 	while(1)
 	{ 
@@ -247,5 +256,6 @@ void lwip_dhcp_task(void *pdata)
 	}
 	lwip_comm_dhcp_delete();//删除DHCP任务 
 }
+#endif
 #endif 
 
