@@ -90,6 +90,8 @@ void StartDefaultTask(void const * argument);
 extern void MX_LWIP_Init(void);
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
+extern void udp_client_init(void);
+
 /**
   * @brief  FreeRTOS initialization
   * @param  None
@@ -138,6 +140,8 @@ void StartDefaultTask(void const * argument)
 {
   /* init code for LWIP */
   MX_LWIP_Init();
+
+  udp_client_init();
 
   /* USER CODE BEGIN StartDefaultTask */
   /* Infinite loop */
