@@ -207,10 +207,11 @@ void lwip_dhcp_task(void *pdata)
   while (1) {
     ip = gnetif.ip_addr.addr; 
     msk = gnetif.netmask.addr;
-    gw = lwip_netif.gw.addr;
-
-    printf("dhcp is ongoing...\r\n");   
-    if (ip != 0) {
+    gw = gnetif.gw.addr;
+    
+    printf("dhcp is ongoing...\r\n");  
+    
+    if (ip != 0 && netif_is_link_up(&gnetif)) {
       printf("ip :%d.%d.%d.%d\r\n", 
         ip&0xff, (ip>>8)&0xff, (ip>>16)&0xff, (ip>>24)&0xff); 
       printf("msk:%d.%d.%d.%d\r\n", 
