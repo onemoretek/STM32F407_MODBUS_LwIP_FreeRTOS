@@ -164,10 +164,7 @@ void StartDefaultTask(void const * argument)
 /* USER CODE BEGIN Application */
 void MyDhcpTask(void const * argument) 
 {
-  for (;;) {
-    lwip_dhcp_task(NULL); 
-    vTaskDelay(10);
-  }
+   lwip_dhcp_task(NULL); 
 }
 
 void MyDhcpTaskCreate(void) 

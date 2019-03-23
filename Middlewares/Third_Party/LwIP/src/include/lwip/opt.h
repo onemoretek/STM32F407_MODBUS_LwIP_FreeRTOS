@@ -2635,7 +2635,7 @@
  * NETIF_DEBUG: Enable debugging in netif.c.
  */
 #if !defined NETIF_DEBUG || defined __DOXYGEN__
-#define NETIF_DEBUG                     LWIP_DBG_OFF
+#define NETIF_DEBUG                     LWIP_DBG_ON
 #endif
 
 /**

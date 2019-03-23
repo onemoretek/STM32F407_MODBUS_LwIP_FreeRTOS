@@ -247,7 +247,7 @@ netif_add(struct netif *netif,
 #if LWIP_IPV6
   s8_t i;
 #endif
-
+   
   LWIP_ASSERT("No init function given", init != NULL);
 
   /* reset new interface configuration state */
