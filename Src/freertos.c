@@ -155,7 +155,7 @@ void StartDefaultTask(void const * argument)
   for(;;)
   {
 	dw_main();
-    vTaskDelay(10);
+   //vTaskDelay(10);
   }
   /* USER CODE END StartDefaultTask */
 }
