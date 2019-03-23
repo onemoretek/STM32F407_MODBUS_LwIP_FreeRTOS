@@ -1128,6 +1128,11 @@
               <FileType>1</FileType>
               <FilePath>..\Netapp\udp_server.c</FilePath>
             </File>
+            <File>
+              <FileName>lwip_comm.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Netapp\lwip_comm.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
