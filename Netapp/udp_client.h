@@ -16,6 +16,7 @@
   */
 #ifndef _UDP_CLIENT_H
 #define _UDP_CLIENT_H
+#include "lwip.h"
 
 /* 定义端口号 */
 #define UDP_REMOTE_PORT    9000 /* 远端端口 */
@@ -24,8 +25,8 @@
 #define UDP_DISC_PORT_LOCAL     9100
 #define UDP_DISC_PORT_REMOTE    9100
 
-#define UDP_MODBUS_PORT_LOCAL   9100
-#define UDP_MODBUS_PORT_REMOTE  9100
+#define UDP_MODBUS_PORT_LOCAL   9200
+#define UDP_MODBUS_PORT_REMOTE  9200
 
 extern unsigned int remote_host_master_connected;
 
@@ -49,6 +50,9 @@ void udp_disc_client_init(void);
  * 返回  : 无
 ******************************************************************************/
 void udp_disc_client_raw_send(char *pData, int len);
+
+void udp_disc_client_raw_send_to(char *pData, int len, const ip_addr_t *addr,
+                                unsigned short port);
 
 /******************************************************************************
  * 描述  : 发送udp数据

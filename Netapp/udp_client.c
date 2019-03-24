@@ -20,6 +20,7 @@
 #include "udp.h"
 #include "string.h"
 #include "udp_client.h"
+#include "device_rpt.h"
 
 unsigned char remote_host_master_addr[4] = {192, 168, 1, 7};
 unsigned char remote_host_backup_addr[4] = {192, 168, 1, 1};
@@ -48,7 +49,7 @@ static void udp_disc_receive_callback(void *arg, struct udp_pcb *upcb,
         *((uint8_t *)&addr->addr + 2), *((uint8_t *)&addr->addr + 3), port);
 
     // We will add code to report my state, configuration
-    udp_sendto(disc_upcb, p, addr, port);    
+    //udp_sendto(disc_upcb, p, addr, port);    
 
     if (remote_host_master_connected == 1 
       && remote_host_master_addr[0] == *((uint8_t *)&addr->addr)
@@ -58,9 +59,9 @@ static void udp_disc_receive_callback(void *arg, struct udp_pcb *upcb,
       // Report the client state
       remote_host_master_connected = 1;
       printf("Send only\r\n");
-      dev_rpt_udp_disc_ack_pkt();
+      dev_rpt_udp_disc_ack_pkt(addr, port);
     } else {
-      printf("Send only  two \r\n");
+      printf("Send and create \r\n");
       remote_host_master_addr[0] = *((uint8_t *)&addr->addr);
       remote_host_master_addr[1] = *((uint8_t *)&addr->addr + 1);
       remote_host_master_addr[2] = *((uint8_t *)&addr->addr + 2);
@@ -69,7 +70,7 @@ static void udp_disc_receive_callback(void *arg, struct udp_pcb *upcb,
         // Report the client state
         remote_host_master_connected = 1;
         printf("Send and create udp socke\r\n");
-        dev_rpt_udp_disc_ack_pkt();
+        dev_rpt_udp_disc_ack_pkt(addr, port);
       } else {
         remote_host_master_connected = 0;
       }
@@ -157,8 +158,44 @@ void udp_disc_client_raw_send(char *pData, int len)
         pbuf_take(p, pData, len);
 
         /* 发送udp数据 */
-        udp_send(modbus_upcb, p);
+        // we need sedn the ack discovery to the fixed ip address. 
 
+        // keep the remote ip
+        
+        udp_send(disc_upcb, p);
+
+        /* 释放缓冲区空间 */
+        pbuf_free(p);
+    }
+}
+
+/******************************************************************************
+ * 描述  : 发送udp数据
+ * 参数  : (in)pData 发送数据的指针, (in)len data to be send, dest ip and port 
+ *         to be sent
+ * 返回  : 无
+******************************************************************************/
+void udp_disc_client_raw_send_to(char *pData, int len, const ip_addr_t *addr,
+                                unsigned short port)
+{
+    struct pbuf *p;
+    
+    
+    /* 分配缓冲区空间 */
+    p = pbuf_alloc(PBUF_TRANSPORT, len, PBUF_POOL);
+    
+    if (p != NULL)
+    {
+        /* 填充缓冲区数据 */
+        pbuf_take(p, pData, len);
+
+        /* 发送udp数据 */
+        // we need sedn the ack discovery to the fixed ip address. 
+
+        // keep the remote ip
+        
+        //udp_send(disc_upcb, p);
+        udp_sendto(disc_upcb, p, addr, port); 
         /* 释放缓冲区空间 */
         pbuf_free(p);
     }

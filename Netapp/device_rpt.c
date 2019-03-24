@@ -21,7 +21,7 @@
 
 extern struct netif gnetif;
 
-int dev_rpt_udp_disc_ack_pkt(void)
+int dev_rpt_udp_disc_ack_pkt(const ip_addr_t *addr, unsigned short port)
 {
    int i;
    dev_info_t dev_info;
@@ -43,7 +43,7 @@ int dev_rpt_udp_disc_ack_pkt(void)
 
    printf("dev_rpt_udp_disc_ack_pkt\r\n");
    
-   udp_disc_client_raw_send((char *)&dev_info, sizeof(dev_info));
+   udp_disc_client_raw_send_to((char *)&dev_info, sizeof(dev_info), addr, port);
 
    return sizeof(dev_info);
 }

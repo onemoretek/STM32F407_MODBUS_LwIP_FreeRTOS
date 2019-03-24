@@ -36,7 +36,7 @@ typedef struct {
 } dev_info_t; 
 #pragma pack()
 
-int dev_rpt_udp_disc_ack_pkt(void);
+int dev_rpt_udp_disc_ack_pkt(const ip_addr_t *addr, unsigned short port);
 
 #endif //_DEVICE_RPT_
 
