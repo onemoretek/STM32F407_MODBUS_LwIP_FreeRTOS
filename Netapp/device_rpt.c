@@ -24,7 +24,7 @@ extern struct netif gnetif;
 int dev_rpt_udp_disc_ack_pkt(const ip_addr_t *addr, unsigned short port)
 {
    int i;
-   dev_info_t dev_info;
+   disc_rply_fmt_t disc_rply;
    unsigned int ip;
    unsigned int msk;
    unsigned int gw;
@@ -33,18 +33,20 @@ int dev_rpt_udp_disc_ack_pkt(const ip_addr_t *addr, unsigned short port)
    msk = gnetif.netmask.addr;
    gw = gnetif.gw.addr;
 
-   dev_info.sta = htonl(ugCmdDisc);
-   dev_info.ip = htonl(ip);
-   dev_info.msk = htonl(msk);
-   dev_info.gw = htonl(gw);
+   disc_rply.cmd = htonl(ugCmdDisc);
+   disc_rply.dataLen = sizeof(dev_info_t);
+   disc_rply.devinfo.sta = htonl(UG_SUCCESSED);
+   disc_rply.devinfo.ip = htonl(ip);
+   disc_rply.devinfo.msk = htonl(msk);
+   disc_rply.devinfo.gw = htonl(gw);
 
    for (i = 0; i < 6; i++) 
-      dev_info.mac[i] = gnetif.hwaddr[i];
+      disc_rply.devinfo.mac[i] = gnetif.hwaddr[i];
 
    printf("dev_rpt_udp_disc_ack_pkt\r\n");
    
-   udp_disc_client_raw_send_to((char *)&dev_info, sizeof(dev_info), addr, port);
+   udp_disc_client_raw_send_to((char *)&disc_rply, sizeof(disc_rply), addr, port);
 
-   return sizeof(dev_info);
+   return sizeof(disc_rply);
 }
 

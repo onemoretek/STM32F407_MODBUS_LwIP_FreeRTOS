@@ -25,15 +25,26 @@ typedef enum {
     ugCmdQuerySta   = 5,
 } ugCmdE;
 
+#define UG_ONGOING     1
+#define UG_FAILED      2
+#define UG_SUCCESSED   3
+#define UG_NEVER       4
+
 //we should use net byte order
 #pragma pack(1)
-typedef struct {
+typedef struct {   
    unsigned int sta;
    unsigned int ip;
    unsigned char mac[6];
    unsigned int msk;
    unsigned int gw;
 } dev_info_t; 
+
+typedef struct {
+   unsigned int cmd;
+   unsigned char dataLen;
+   dev_info_t devinfo;
+} disc_rply_fmt_t;
 #pragma pack()
 
 int dev_rpt_udp_disc_ack_pkt(const ip_addr_t *addr, unsigned short port);
