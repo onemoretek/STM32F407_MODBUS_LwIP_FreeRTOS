@@ -58,8 +58,9 @@ static void udp_disc_receive_callback(void *arg, struct udp_pcb *upcb,
       // Report the client state
       remote_host_master_connected = 1;
       printf("Send only\r\n");
-      udp_modbus_client_send("This is a UWB client");
+      dev_rpt_udp_disc_ack_pkt();
     } else {
+      printf("Send only  two \r\n");
       remote_host_master_addr[0] = *((uint8_t *)&addr->addr);
       remote_host_master_addr[1] = *((uint8_t *)&addr->addr + 1);
       remote_host_master_addr[2] = *((uint8_t *)&addr->addr + 2);
@@ -68,21 +69,10 @@ static void udp_disc_receive_callback(void *arg, struct udp_pcb *upcb,
         // Report the client state
         remote_host_master_connected = 1;
         printf("Send and create udp socke\r\n");
-        udp_modbus_client_send("This is a UWB client");
+        dev_rpt_udp_disc_ack_pkt();
       } else {
         remote_host_master_connected = 0;
       }
-    }
-
-    // Now we have get the host ip addres, it's time to report my configuraiton 
-    // and ability
-    // We need check the state, if the server was not changed and the client 
-    // Have connected to server not need connect agagin
-    
-    if (ERR_OK == udp_modbus_client_init()) {
-      // Report the client state
-      remote_host_master_connected = 1;
-      udp_modbus_client_send("This is a UWB client");
     }
     
     /* 释放缓冲区数据 */
@@ -167,7 +157,7 @@ void udp_disc_client_raw_send(char *pData, int len)
         pbuf_take(p, pData, len);
 
         /* 发送udp数据 */
-        udp_send(disc_upcb, p);
+        udp_send(modbus_upcb, p);
 
         /* 释放缓冲区空间 */
         pbuf_free(p);
@@ -221,31 +211,6 @@ void udp_disc_client_init(void)
  * 参数  : (in)pData 发送数据的指针
  * 返回  : 无
 ******************************************************************************/
-void udp_modbus_client_send(char *pData)
-{
-    struct pbuf *p;
-    
-    /* 分配缓冲区空间 */
-    p = pbuf_alloc(PBUF_TRANSPORT, strlen(pData), PBUF_POOL);
-    
-    if (p != NULL)
-    {
-        /* 填充缓冲区数据 */
-        pbuf_take(p, pData, strlen(pData));
-
-        /* 发送udp数据 */
-        udp_send(modbus_upcb, p);
-
-        /* 释放缓冲区空间 */
-        pbuf_free(p);
-    }
-}
-
-/******************************************************************************
- * 描述  : 发送udp数据
- * 参数  : (in)pData 发送数据的指针, (in)len data to be sent 
- * 返回  : 无
-******************************************************************************/
 void udp_modbus_client_raw_send(unsigned char *pData, unsigned int len)
 {
     struct pbuf *p;
@@ -257,6 +222,31 @@ void udp_modbus_client_raw_send(unsigned char *pData, unsigned int len)
     {
         /* 填充缓冲区数据 */
         pbuf_take(p, pData, len);
+
+        /* 发送udp数据 */
+        udp_send(modbus_upcb, p);
+
+        /* 释放缓冲区空间 */
+        pbuf_free(p);
+    }
+}
+
+/******************************************************************************
+ * 描述  : 发送udp数据
+ * 参数  : (in)pData 发送数据的指针
+ * 返回  : 无
+******************************************************************************/
+void udp_modbus_client_send(char *pData)
+{
+    struct pbuf *p;
+    
+    /* 分配缓冲区空间 */
+    p = pbuf_alloc(PBUF_TRANSPORT, strlen(pData), PBUF_POOL);
+    
+    if (p != NULL)
+    {
+        /* 填充缓冲区数据 */
+        pbuf_take(p, pData, strlen(pData));
 
         /* 发送udp数据 */
         udp_send(modbus_upcb, p);

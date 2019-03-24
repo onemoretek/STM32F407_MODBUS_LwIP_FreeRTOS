@@ -24,8 +24,8 @@
 #define UDP_DISC_PORT_LOCAL     9100
 #define UDP_DISC_PORT_REMOTE    9100
 
-#define UDP_MODBUS_PORT_LOCAL   9101
-#define UDP_MODBUS_PORT_REMOTE  9101
+#define UDP_MODBUS_PORT_LOCAL   9100
+#define UDP_MODBUS_PORT_REMOTE  9100
 
 extern unsigned int remote_host_master_connected;
 
@@ -42,6 +42,13 @@ void udp_disc_client_send(char *pData);
  * 返回  : 无
 ******************************************************************************/
 void udp_disc_client_init(void);
+
+/******************************************************************************
+ * 描述  : 发送udp数据
+ * 参数  : (in)pData 发送数据的指针, (in)len data to be send
+ * 返回  : 无
+******************************************************************************/
+void udp_disc_client_raw_send(char *pData, int len);
 
 /******************************************************************************
  * 描述  : 发送udp数据
