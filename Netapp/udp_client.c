@@ -242,6 +242,31 @@ void udp_modbus_client_send(char *pData)
 }
 
 /******************************************************************************
+ * 描述  : 发送udp数据
+ * 参数  : (in)pData 发送数据的指针, (in)len data to be sent 
+ * 返回  : 无
+******************************************************************************/
+void udp_modbus_client_raw_send(unsigned char *pData, unsigned int len)
+{
+    struct pbuf *p;
+    
+    /* 分配缓冲区空间 */
+    p = pbuf_alloc(PBUF_TRANSPORT, len, PBUF_POOL);
+    
+    if (p != NULL)
+    {
+        /* 填充缓冲区数据 */
+        pbuf_take(p, pData, len);
+
+        /* 发送udp数据 */
+        udp_send(modbus_upcb, p);
+
+        /* 释放缓冲区空间 */
+        pbuf_free(p);
+    }
+}
+
+/******************************************************************************
  * 描述  : 创建udp客户端
  * 参数  : 无
  * 返回  : 无

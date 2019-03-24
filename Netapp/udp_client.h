@@ -27,6 +27,8 @@
 #define UDP_MODBUS_PORT_LOCAL   9101
 #define UDP_MODBUS_PORT_REMOTE  9101
 
+extern unsigned int remote_host_master_connected;
+
 /******************************************************************************
  * 描述  : 发送udp数据
  * 参数  : (in)pData 发送数据的指针
@@ -53,7 +55,7 @@ void udp_modbus_client_send(char *pData);
  * 参数  : (in)pData 发送数据的指针, (in)len 发送数据长度
  * 返回  : 无
 ******************************************************************************/
-void udp_modbus_client_raw_send(char *pData, int len);
+void udp_modbus_client_raw_send(unsigned char *pData, unsigned int len);
 
 /******************************************************************************
  * 描述  : 创建udp客户端

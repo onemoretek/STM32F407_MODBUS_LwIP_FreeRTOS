@@ -7,6 +7,7 @@
 #include "modbus.h"
 #include "dw_main.h"
 #include "uart.h"
+#include "../../../../Netapp/udp_client.h"
 
 #define ADDR 1   //È¡Ïû
 #define NULL 0
@@ -80,6 +81,9 @@ void MODBUS_Return(unsigned char *buf,unsigned int length)
 	
 	if(UsartNUM==3) 	
 		Usart3_SendString(buf,length);
+
+   if (0 != remote_host_master_connected)
+      udp_modbus_client_raw_send(buf, length);
 
 }
 
