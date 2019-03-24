@@ -19,16 +19,7 @@
 #include "lwip.h"
 #include "udp.h"
 #include "string.h"
-
-/* 定义端口号 */
-#define UDP_REMOTE_PORT    9000 /* 远端端口 */
-#define UDP_LOCAL_PORT     900 /* 本地端口 */
-
-#define UDP_DISC_PORT_LOCAL     9100
-#define UDP_DISC_PORT_REMOTE    9100
-
-#define UDP_MODBUS_PORT_LOCAL   9101
-#define UDP_MODBUS_PORT_REMOTE  9101
+#include "udp_client.h"
 
 unsigned char remote_host_master_addr[4] = {192, 168, 1, 7};
 unsigned char remote_host_backup_addr[4] = {192, 168, 1, 1};
@@ -37,45 +28,6 @@ unsigned int remote_host_master_connected = 0;
 /* udp控制块 */
 static struct udp_pcb *disc_upcb;
 static struct udp_pcb *modbus_upcb;
-
-/******************************************************************************
- * 描述  : 接收回调函数
- * 参数  : -
- * 返回  : 无
-******************************************************************************/
-static void udp_disc_receive_callback(void *arg, struct udp_pcb *upcb,
-    struct pbuf *p, const ip_addr_t *addr, u16_t port);
-
-static void udp_modbus_receive_callback(void *arg, struct udp_pcb *upcb,
-    struct pbuf *p, const ip_addr_t *addr, u16_t port);
-
-/******************************************************************************
- * 描述  : 发送udp数据
- * 参数  : (in)pData 发送数据的指针
- * 返回  : 无
-******************************************************************************/
-void udp_disc_client_send(char *pData);
-
-/******************************************************************************
- * 描述  : 创建udp客户端
- * 参数  : 无
- * 返回  : 无
-******************************************************************************/
-void udp_disc_client_init(void);
-
-/******************************************************************************
- * 描述  : 发送udp数据
- * 参数  : (in)pData 发送数据的指针
- * 返回  : 无
-******************************************************************************/
-void udp_modbus_client_send(char *pData);
-
-/******************************************************************************
- * 描述  : 创建udp客户端
- * 参数  : 无
- * 返回  : 无
-******************************************************************************/
-int udp_modbus_client_init(void);
 
 /******************************************************************************
  * 描述  : 创建udp客户端
@@ -188,6 +140,31 @@ void udp_disc_client_send(char *pData)
     {
         /* 填充缓冲区数据 */
         pbuf_take(p, pData, strlen(pData));
+
+        /* 发送udp数据 */
+        udp_send(disc_upcb, p);
+
+        /* 释放缓冲区空间 */
+        pbuf_free(p);
+    }
+}
+
+/******************************************************************************
+ * 描述  : 发送udp数据
+ * 参数  : (in)pData 发送数据的指针, (in)len data to be send
+ * 返回  : 无
+******************************************************************************/
+void udp_disc_client_raw_send(char *pData, int len)
+{
+    struct pbuf *p;
+    
+    /* 分配缓冲区空间 */
+    p = pbuf_alloc(PBUF_TRANSPORT, len, PBUF_POOL);
+    
+    if (p != NULL)
+    {
+        /* 填充缓冲区数据 */
+        pbuf_take(p, pData, len);
 
         /* 发送udp数据 */
         udp_send(disc_upcb, p);
